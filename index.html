@@ -1,0 +1,3022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Dividend Policy Advisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============================================================
+   DESIGN SYSTEM & RESET
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1a56db;--primary-dark:#1341a8;--primary-light:#e8f0fe;
+  --secondary:#0e9f6e;--secondary-light:#def7ec;
+  --danger:#e02424;--danger-light:#fde8e8;
+  --warning:#d97706;--warning-light:#fef3c7;
+  --bg:#f0f4f8;--bg2:#e8edf3;
+  --card:#ffffff;--border:#e2e8f0;
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --radius:12px;--radius-sm:8px;--radius-lg:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.07),0 4px 6px rgba(0,0,0,.05);
+  --transition:all .2s ease;
+  --anim-speed:1;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+h1,h2,h3,h4,h5{line-height:1.3;font-weight:700}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app-wrapper{display:flex;flex-direction:column;min-height:100vh}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;align-items:center;justify-content:space-between;
+  height:60px;position:sticky;top:0;z-index:100;
+  box-shadow:var(--shadow);
+}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.1rem;color:var(--primary)}
+.topbar-brand .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--primary),#4f8ef7);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.currency-badge{background:var(--primary-light);color:var(--primary);padding:4px 10px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:var(--transition)}
+.currency-badge:hover{background:var(--primary);color:#fff}
+.hamburger{display:none;background:none;border:none;font-size:1.4rem;color:var(--text);padding:4px}
+
+/* ============================================================
+   MAIN NAV
+   ============================================================ */
+.main-nav{
+  background:var(--card);border-bottom:2px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;position:sticky;top:60px;z-index:99;
+}
+.main-nav::-webkit-scrollbar{display:none}
+.nav-list{display:flex;list-style:none;padding:0 24px}
+.nav-list li a{
+  display:flex;align-items:center;gap:6px;padding:14px 16px;
+  font-size:.85rem;font-weight:500;color:var(--text2);
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+  white-space:nowrap;transition:var(--transition);
+}
+.nav-list li a:hover{color:var(--primary)}
+.nav-list li a.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+
+/* ============================================================
+   PAGES
+   ============================================================ */
+.page{display:none;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   CONTAINERS & SECTIONS
+   ============================================================ */
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.section-title{font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.section-subtitle{font-size:.9rem;color:var(--text2);margin-bottom:20px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+.card-sm{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:1rem;font-weight:700;color:var(--text)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+/* ============================================================
+   HERO / HOME
+   ============================================================ */
+.hero{
+  background:linear-gradient(135deg,#1a56db 0%,#2563eb 40%,#0e9f6e 100%);
+  color:#fff;padding:60px 24px 50px;text-align:center;
+}
+.hero h1{font-size:2.8rem;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+.hero p.tagline{font-size:1.1rem;opacity:.9;margin-bottom:14px;font-weight:500}
+.hero p.desc{font-size:.95rem;opacity:.8;max-width:600px;margin:0 auto 28px}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-weight:600;font-size:.9rem;border:2px solid transparent;transition:var(--transition);cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-white{background:#fff;color:var(--primary);border-color:#fff}
+.btn-white:hover{background:var(--primary-light);transform:translateY(-1px)}
+.btn-secondary{background:var(--secondary);color:#fff;border-color:var(--secondary)}
+.btn-secondary:hover{background:#0b8a5e;transform:translateY(-1px)}
+.btn-outline{background:transparent;color:var(--primary);border-color:var(--primary)}
+.btn-outline:hover{background:var(--primary-light)}
+.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn-danger:hover{background:#b91c1c;transform:translateY(-1px)}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+.btn-lg{padding:14px 28px;font-size:1rem}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+/* Feature cards grid */
+.feature-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:1200px;margin:0 auto;padding:0 24px 40px}
+.feature-card{
+  background:#fff;border-radius:var(--radius-lg);padding:24px;cursor:pointer;
+  border:2px solid transparent;transition:all .25s ease;box-shadow:var(--shadow-md);
+}
+.feature-card:hover{border-color:var(--primary);transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.feature-card .fc-icon{font-size:2rem;margin-bottom:12px}
+.feature-card h3{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.feature-card p{font-size:.82rem;color:var(--text2);line-height:1.5}
+
+/* Disclaimer */
+.disclaimer{
+  background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-sm);
+  padding:10px 16px;font-size:.8rem;color:#92400e;
+  max-width:1200px;margin:0 auto 8px;display:flex;align-items:flex-start;gap:8px;
+}
+.disclaimer svg{flex-shrink:0;margin-top:2px}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:6px}
+.form-label span{color:var(--text2);font-weight:400;font-size:.78rem;margin-left:4px}
+.form-control{
+  width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:.9rem;color:var(--text);background:#fff;transition:var(--transition);
+}
+.form-control:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.form-control.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(224,36,36,.1)}
+.form-control.success{border-color:var(--secondary)}
+.form-helper{font-size:.75rem;color:var(--text2);margin-top:4px}
+.form-error{font-size:.75rem;color:var(--danger);margin-top:4px;display:none}
+.form-error.show{display:block}
+.input-group{position:relative}
+.input-prefix{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:.9rem;pointer-events:none}
+.input-group .form-control{padding-left:28px}
+.auto-badge{font-size:.7rem;background:var(--secondary-light);color:var(--secondary);padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600}
+
+/* Range slider */
+.slider-container{display:flex;align-items:center;gap:12px;margin-top:6px}
+.slider-container input[type=range]{flex:1;-webkit-appearance:none;height:6px;background:var(--bg2);border-radius:3px;outline:none;cursor:pointer}
+.slider-container input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.15s}
+.slider-container input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.slider-val{font-size:.9rem;font-weight:700;color:var(--primary);min-width:50px;text-align:right}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{
+  background:var(--card);border-radius:var(--radius);padding:16px 18px;
+  box-shadow:var(--shadow);border-left:4px solid var(--primary);
+  transition:var(--transition);
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card.green{border-left-color:var(--secondary)}
+.stat-card.orange{border-left-color:var(--warning)}
+.stat-card.red{border-left-color:var(--danger)}
+.stat-label{font-size:.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.stat-value{font-size:1.5rem;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat-sub{font-size:.75rem;color:var(--text3);margin-top:2px}
+
+/* ============================================================
+   BADGES & TAGS
+   ============================================================ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:.75rem;font-weight:600}
+.badge-blue{background:var(--primary-light);color:var(--primary)}
+.badge-green{background:var(--secondary-light);color:var(--secondary)}
+.badge-red{background:var(--danger-light);color:var(--danger)}
+.badge-orange{background:var(--warning-light);color:var(--warning)}
+.badge-gray{background:#f1f5f9;color:var(--text2)}
+
+/* ============================================================
+   ALERT BOXES
+   ============================================================ */
+.alert{padding:12px 16px;border-radius:var(--radius-sm);font-size:.87rem;display:flex;gap:10px;align-items:flex-start}
+.alert-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.alert-success{background:var(--secondary-light);border:1px solid #6ee7b7;color:#065f46}
+.alert-warning{background:var(--warning-light);border:1px solid #fde68a;color:#78350f}
+.alert-danger{background:var(--danger-light);border:1px solid #fca5a5;color:#7f1d1d}
+.alert-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);padding:4px;border-radius:var(--radius-sm)}
+.tab-btn{flex:1;padding:8px 12px;border:none;border-radius:6px;font-size:.85rem;font-weight:500;color:var(--text2);background:transparent;cursor:pointer;transition:var(--transition);text-align:center;white-space:nowrap}
+.tab-btn.active{background:var(--card);color:var(--primary);font-weight:700;box-shadow:var(--shadow)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ============================================================
+   ACCORDION / EXPANDABLE
+   ============================================================ */
+.accordion{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px}
+.accordion-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;font-weight:600;font-size:.9rem;background:var(--card);transition:var(--transition);user-select:none}
+.accordion-header:hover{background:#f8fafc}
+.accordion-icon{transition:transform .2s;font-size:.9rem;color:var(--text2)}
+.accordion.open .accordion-icon{transform:rotate(180deg)}
+.accordion-body{display:none;padding:0 16px 16px;font-size:.87rem;color:var(--text2);line-height:1.7}
+.accordion.open .accordion-body{display:block}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+.chart-wrap{position:relative;height:280px;width:100%}
+.chart-wrap-sm{position:relative;height:220px;width:100%}
+.chart-wrap-lg{position:relative;height:350px;width:100%}
+.chart-title{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:12px;text-align:center}
+
+/* ============================================================
+   PROGRESS BARS
+   ============================================================ */
+.progress-bar-wrap{margin-bottom:12px}
+.progress-label{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px;font-weight:500}
+.progress-track{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.progress-fill.blue{background:var(--primary)}
+.progress-fill.green{background:var(--secondary)}
+.progress-fill.orange{background:var(--warning)}
+.progress-fill.red{background:var(--danger)}
+
+/* ============================================================
+   FORMULA BOX
+   ============================================================ */
+.formula-box{
+  background:linear-gradient(135deg,#f0f4f8,#e8edf3);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:16px 20px;font-family:monospace;font-size:.95rem;
+  color:var(--primary-dark);margin:12px 0;text-align:center;
+  font-weight:600;letter-spacing:.02em;
+}
+.step-box{
+  background:#f8fafc;border-left:3px solid var(--primary);
+  padding:12px 16px;border-radius:0 8px 8px 0;margin:8px 0;
+  font-size:.88rem;
+}
+.step-box .step-num{font-size:.7rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.step-box .step-content{color:var(--text);font-family:monospace}
+
+/* ============================================================
+   COMPARISON TABLE
+   ============================================================ */
+.comp-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.comp-table th{background:var(--primary);color:#fff;padding:10px 14px;text-align:left;font-weight:600}
+.comp-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.comp-table tr:hover td{background:#f8fafc}
+.comp-table tr:last-child td{border-bottom:none}
+.comp-table th:first-child,.comp-table td:first-child{font-weight:600;color:var(--text)}
+
+/* ============================================================
+   MODEL CARDS
+   ============================================================ */
+.model-card{
+  border:2px solid var(--border);border-radius:var(--radius);padding:20px;
+  transition:var(--transition);cursor:pointer;
+}
+.model-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.model-card.walter{border-top:4px solid var(--primary)}
+.model-card.gordon{border-top:4px solid var(--secondary)}
+.model-card.mm{border-top:4px solid var(--warning)}
+.model-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.model-badge.walter{background:var(--primary-light);color:var(--primary)}
+.model-badge.gordon{background:var(--secondary-light);color:var(--secondary)}
+.model-badge.mm{background:var(--warning-light);color:var(--warning)}
+
+/* ============================================================
+   STRATEGY CARDS
+   ============================================================ */
+.strategy-card{border:2px solid var(--border);border-radius:var(--radius);padding:20px;transition:var(--transition)}
+.strategy-card.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.strategy-icon{font-size:1.8rem;margin-bottom:8px}
+
+/* ============================================================
+   DECISION TREE
+   ============================================================ */
+.decision-tree{display:flex;flex-direction:column;align-items:center;gap:0;padding:20px 0}
+.dt-node{
+  background:var(--card);border:2px solid var(--border);border-radius:var(--radius);
+  padding:12px 20px;text-align:center;font-weight:600;font-size:.9rem;
+  min-width:200px;position:relative;transition:var(--transition);
+}
+.dt-node.start{background:var(--primary);color:#fff;border-color:var(--primary)}
+.dt-node.question{background:#eff6ff;border-color:var(--primary);color:var(--primary-dark)}
+.dt-node.result-green{background:var(--secondary-light);border-color:var(--secondary);color:#065f46}
+.dt-node.result-blue{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark)}
+.dt-node.result-gray{background:#f1f5f9;border-color:#cbd5e1;color:var(--text2)}
+.dt-arrow{color:var(--text3);font-size:1.2rem;margin:4px 0;text-align:center}
+.dt-branches{display:flex;gap:24px;justify-content:center;width:100%}
+.dt-branch{display:flex;flex-direction:column;align-items:center;gap:0}
+.dt-branch-label{font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase}
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+.timeline{display:flex;align-items:center;gap:0;overflow-x:auto;padding:20px 0;scrollbar-width:none}
+.timeline::-webkit-scrollbar{display:none}
+.tl-item{display:flex;flex-direction:column;align-items:center;min-width:100px;cursor:pointer;flex:1}
+.tl-dot{
+  width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  transition:var(--transition);box-shadow:var(--shadow);position:relative;z-index:1;
+}
+.tl-item:hover .tl-dot{transform:scale(1.15);box-shadow:var(--shadow-md)}
+.tl-label{font-size:.75rem;font-weight:600;color:var(--text2);margin-top:8px;text-align:center;max-width:80px}
+.tl-connector{flex:1;height:2px;background:linear-gradient(to right,var(--primary),var(--secondary));min-width:20px;margin-bottom:22px}
+.tl-tooltip{
+  position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  background:var(--text);color:#fff;padding:8px 12px;border-radius:8px;
+  font-size:.78rem;white-space:nowrap;pointer-events:none;opacity:0;transition:.2s;z-index:10;
+}
+.tl-item:hover .tl-tooltip{opacity:1}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+.history-item{
+  background:var(--card);border-radius:var(--radius);padding:16px 20px;
+  border:1px solid var(--border);display:flex;align-items:center;gap:12px;
+  transition:var(--transition);margin-bottom:8px;
+}
+.history-item:hover{box-shadow:var(--shadow-md);border-color:#cbd5e1}
+.history-meta{flex:1}
+.history-company{font-weight:700;font-size:.9rem;color:var(--text)}
+.history-date{font-size:.75rem;color:var(--text3);margin-top:2px}
+.history-vals{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.history-val{font-size:.78rem;color:var(--text2)}
+.history-val strong{color:var(--text);font-weight:600}
+.history-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* ============================================================
+   LOADING ANIMATION
+   ============================================================ */
+.loading-overlay{
+  position:fixed;inset:0;background:rgba(255,255,255,.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:1000;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.loading-overlay.show{opacity:1;pointer-events:all}
+.loading-spinner{
+  width:48px;height:48px;border:4px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin .8s linear infinite;margin-bottom:20px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-steps{list-style:none;text-align:left}
+.loading-step{
+  padding:6px 0;font-size:.9rem;color:var(--text3);display:flex;align-items:center;gap:10px;
+  transition:.3s;
+}
+.loading-step.done{color:var(--secondary)}
+.loading-step.active{color:var(--primary);font-weight:600}
+.loading-step .step-icon{width:18px;text-align:center}
+
+/* ============================================================
+   LEARN PAGE
+   ============================================================ */
+.learn-topic{
+  background:var(--card);border-radius:var(--radius);margin-bottom:8px;
+  border:1px solid var(--border);overflow:hidden;
+}
+.learn-header{
+  display:flex;align-items:center;gap:12px;padding:14px 18px;
+  cursor:pointer;font-weight:600;font-size:.9rem;transition:var(--transition);
+}
+.learn-header:hover{background:#f8fafc}
+.learn-num{
+  width:26px;height:26px;border-radius:50%;background:var(--primary);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:800;flex-shrink:0;
+}
+.learn-body{display:none;padding:0 18px 18px 56px}
+.learn-body.open{display:block;animation:fadeIn .25s ease}
+.learn-body h4{font-size:.85rem;font-weight:700;color:var(--primary);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.learn-body p,.learn-body li{font-size:.87rem;color:var(--text2);line-height:1.7}
+.learn-body ul{margin-left:16px}
+.learn-example{background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;font-size:.85rem}
+.learn-example strong{color:var(--primary)}
+
+/* ============================================================
+   PRESET EXAMPLES
+   ============================================================ */
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.preset-card{
+  background:var(--card);border:2px solid var(--border);border-radius:var(--radius);
+  padding:16px;cursor:pointer;transition:var(--transition);
+}
+.preset-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.preset-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:6px}
+.preset-name{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.preset-vals{font-size:.78rem;color:var(--text2);line-height:1.8}
+
+/* ============================================================
+   FUNDING FLOW
+   ============================================================ */
+.funding-flow{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0}
+.flow-box{
+  width:100%;max-width:360px;background:var(--card);border:2px solid var(--border);
+  border-radius:var(--radius);padding:14px 18px;text-align:center;font-weight:600;font-size:.9rem;
+}
+.flow-box.profit{background:var(--primary);color:#fff;border-color:var(--primary)}
+.flow-box.dividend{background:var(--danger-light);border-color:var(--danger);color:#7f1d1d}
+.flow-box.retention{background:var(--secondary-light);border-color:var(--secondary);color:#065f46}
+.flow-box.investment{background:var(--warning-light);border-color:var(--warning);color:#78350f}
+.flow-box.surplus{background:var(--secondary-light);border-color:var(--secondary);color:#065f46}
+.flow-box.gap{background:var(--danger-light);border-color:var(--danger);color:#7f1d1d}
+.flow-arrow{font-size:1.3rem;color:var(--text3);margin:4px 0}
+.flow-split{display:flex;gap:16px;width:100%;max-width:360px;justify-content:center}
+.flow-split .flow-box{flex:1}
+
+/* ============================================================
+   ROI vs Ke INDICATOR
+   ============================================================ */
+.roi-ke-indicator{
+  background:var(--card);border-radius:var(--radius);padding:20px;
+  text-align:center;border:2px solid var(--border);
+}
+.roi-ke-bars{display:flex;align-items:flex-end;justify-content:center;gap:24px;height:80px;margin:16px 0}
+.roi-ke-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.roi-ke-bar{width:60px;border-radius:6px 6px 0 0;transition:height .5s ease,background .5s ease;min-height:4px}
+.roi-ke-bar.roi{background:var(--primary)}
+.roi-ke-bar.ke{background:var(--danger)}
+.roi-ke-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text2)}
+.roi-ke-verdict{
+  font-size:1rem;font-weight:700;padding:8px 16px;border-radius:8px;
+  display:inline-block;margin-top:4px;transition:.3s;
+}
+
+/* ============================================================
+   MM ASSUMPTION CARDS
+   ============================================================ */
+.mm-assumption{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;cursor:pointer;transition:var(--transition);
+}
+.mm-assumption:hover{border-color:var(--warning);box-shadow:var(--shadow)}
+.mm-assumption .icon{font-size:1.4rem;margin-bottom:8px}
+.mm-assumption h4{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.mm-assumption p{font-size:.8rem;color:var(--text2);line-height:1.6}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer{background:var(--card);border-top:1px solid var(--border);padding:16px 24px;text-align:center;font-size:.8rem;color:var(--text3);margin-top:40px}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:900px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr!important}
+  .hero h1{font-size:2rem}
+  .comp-table{font-size:.78rem}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .container{padding:16px}
+  .hero{padding:40px 16px 32px}
+  .hero h1{font-size:1.6rem}
+  .topbar{padding:0 14px}
+  .feature-cards{padding:0 14px 30px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .hamburger{display:block}
+  .main-nav .nav-list{padding:0 10px}
+  .nav-list li a{padding:10px 10px;font-size:.78rem}
+  .dt-branches{flex-direction:column;align-items:center}
+  .history-item{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:400px){
+  .stat-grid{grid-template-columns:1fr}
+  .btn{padding:9px 16px;font-size:.85rem}
+}
+
+/* ============================================================
+   ANIMATION UTILITIES
+   ============================================================ */
+.fade-in{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+.pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.spin{animation:spin .8s linear infinite}
+
+/* number counter */
+.counter{font-variant-numeric:tabular-nums;transition:color .3s}
+
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+.settings-section{margin-bottom:28px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-label h4{font-size:.9rem;font-weight:600;color:var(--text)}
+.settings-label p{font-size:.8rem;color:var(--text2)}
+.toggle{position:relative;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-slider{background:var(--primary)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+/* ============================================================
+   COMPARISON SECTION SPECIAL
+   ============================================================ */
+.value-comparison{
+  display:flex;align-items:center;justify-content:space-around;
+  padding:20px;background:var(--bg2);border-radius:var(--radius);margin:16px 0;flex-wrap:wrap;gap:16px;
+}
+.value-comparison-item{text-align:center}
+.value-comparison-item .val{font-size:1.6rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.value-comparison-item .lbl{font-size:.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+
+/* Investment Analysis specific */
+.investment-status{
+  text-align:center;padding:16px;border-radius:var(--radius);font-weight:700;font-size:1rem;
+  margin-top:12px;
+}
+.investment-status.surplus{background:var(--secondary-light);color:#065f46}
+.investment-status.balanced{background:var(--primary-light);color:var(--primary)}
+.investment-status.gap{background:var(--danger-light);color:var(--danger)}
+
+/* Compounding chart */
+.compound-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:640px){.compound-controls{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="logo-icon">📊</div>
+    <span>AI Dividend Advisor</span>
+  </div>
+  <div class="topbar-right">
+    <button class="currency-badge" id="currencyBtn" onclick="showPage('settings')">₹ INR</button>
+    <button class="hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<!-- MAIN NAV -->
+<nav class="main-nav" id="mainNav">
+  <ul class="nav-list" id="navList">
+    <li><a href="#" class="active" data-page="home" onclick="showPage('home');return false">🏠 Home</a></li>
+    <li><a href="#" data-page="analyzer" onclick="showPage('analyzer');return false">📊 Dividend Analyzer</a></li>
+    <li><a href="#" data-page="walter" onclick="showPage('walter');return false">📐 Walter Model</a></li>
+    <li><a href="#" data-page="gordon" onclick="showPage('gordon');return false">📈 Gordon Model</a></li>
+    <li><a href="#" data-page="mm" onclick="showPage('mm');return false">⚖️ MM Approach</a></li>
+    <li><a href="#" data-page="compare" onclick="showPage('compare');return false">🔄 Compare Models</a></li>
+    <li><a href="#" data-page="simulator" onclick="showPage('simulator');return false">🎮 Strategy Simulator</a></li>
+    <li><a href="#" data-page="investment" onclick="showPage('investment');return false">💰 Investment Analysis</a></li>
+    <li><a href="#" data-page="learn" onclick="showPage('learn');return false">📚 Learn</a></li>
+    <li><a href="#" data-page="history" onclick="showPage('history');return false">🕐 History</a></li>
+    <li><a href="#" data-page="settings" onclick="showPage('settings');return false">⚙️ Settings</a></li>
+  </ul>
+</nav>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <ul class="loading-steps" id="loadingSteps">
+    <li class="loading-step" id="ls0"><span class="step-icon">⏳</span> Analyzing Financial Inputs...</li>
+    <li class="loading-step" id="ls1"><span class="step-icon">⏳</span> Calculating Dividend Ratios...</li>
+    <li class="loading-step" id="ls2"><span class="step-icon">⏳</span> Calculating Walter Model...</li>
+    <li class="loading-step" id="ls3"><span class="step-icon">⏳</span> Calculating Gordon Model...</li>
+    <li class="loading-step" id="ls4"><span class="step-icon">⏳</span> Evaluating MM Framework...</li>
+    <li class="loading-step" id="ls5"><span class="step-icon">⏳</span> Generating Financial Interpretation...</li>
+  </ul>
+</div>
+
+<!-- ================================================================
+     PAGE: HOME
+     ================================================================ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h1>AI Dividend Policy Advisor</h1>
+    <p class="tagline">Analyze &bull; Compare &bull; Simulate &bull; Learn</p>
+    <p class="desc">Dividend policy determines how much of a company's profit is distributed to shareholders and how much is retained for future growth and investment. Explore Walter, Gordon, and MM models interactively.</p>
+    <div class="hero-btns">
+      <button class="btn btn-white btn-lg" onclick="loadDemo();showPage('analyzer')">🚀 Try Demo</button>
+      <button class="btn btn-lg" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)" onclick="showPage('learn')">📚 Start Learning</button>
+    </div>
+  </div>
+
+  <div class="container" style="padding-top:30px">
+    <div class="disclaimer">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span><strong>Educational Tool Only.</strong> Calculations and interpretations are based on theoretical dividend-policy models and their assumptions. Model outputs are not investment advice, actual market-price predictions, or recommendations to buy or sell securities.</span>
+    </div>
+  </div>
+
+  <div class="feature-cards">
+    <div class="feature-card" onclick="showPage('analyzer')">
+      <div class="fc-icon">📊</div>
+      <h3>Dividend Policy Analyzer</h3>
+      <p>Analyze company financial information and generate a model-based educational interpretation.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('walter')">
+      <div class="fc-icon">📐</div>
+      <h3>Walter Model</h3>
+      <p>Calculate theoretical share value using Walter's Dividend Model with step-by-step workings.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('gordon')">
+      <div class="fc-icon">📈</div>
+      <h3>Gordon Model</h3>
+      <p>Calculate theoretical share value using Gordon's Growth Model with validation.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('mm')">
+      <div class="fc-icon">⚖️</div>
+      <h3>MM Approach</h3>
+      <p>Understand dividend irrelevance under Modigliani-Miller assumptions with interactive exploration.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('compare')">
+      <div class="fc-icon">🔄</div>
+      <h3>Compare Models</h3>
+      <p>Side-by-side comparison of Walter, Gordon, and MM with animated charts.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('simulator')">
+      <div class="fc-icon">🎮</div>
+      <h3>Strategy Simulator</h3>
+      <p>Compare high dividend, balanced, and high retention strategies interactively.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('learn')">
+      <div class="fc-icon">📚</div>
+      <h3>Learn</h3>
+      <p>Study 13 core dividend policy concepts with definitions, formulas, and examples.</p>
+    </div>
+    <div class="feature-card" onclick="showPage('history')">
+      <div class="fc-icon">🕐</div>
+      <h3>History</h3>
+      <p>Review and restore all your previous calculations saved locally in your browser.</p>
+    </div>
+  </div>
+
+  <div class="container" style="padding-top:0">
+    <div class="card">
+      <h3 style="margin-bottom:16px">📘 What This Application Covers</h3>
+      <div class="grid-3">
+        <div>
+          <h4 style="color:var(--primary);font-size:.85rem;margin-bottom:8px">📐 Walter Model</h4>
+          <p style="font-size:.82rem;color:var(--text2);line-height:1.6">James Walter argued that dividend policy <em>is relevant</em>. The relationship between r (ROI) and Ke (cost of equity) determines whether distributing or retaining profits maximises theoretical share value.</p>
+        </div>
+        <div>
+          <h4 style="color:var(--secondary);font-size:.85rem;margin-bottom:8px">📈 Gordon Growth Model</h4>
+          <p style="font-size:.82rem;color:var(--text2);line-height:1.6">Myron Gordon's model values a share using expected future dividends, required return, and a constant growth rate. Dividend policy is relevant through the growth-return relationship.</p>
+        </div>
+        <div>
+          <h4 style="color:var(--warning);font-size:.85rem;margin-bottom:8px">⚖️ MM Theory</h4>
+          <p style="font-size:.82rem;color:var(--text2);line-height:1.6">Modigliani-Miller argued dividend policy is <em>irrelevant</em> under idealized assumptions. A company's value depends on its earning power and investment policy alone.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: DIVIDEND ANALYZER
+     ================================================================ -->
+<div class="page" id="page-analyzer">
+  <div class="container">
+    <div class="section-title">📊 Dividend Policy Analyzer</div>
+    <div class="section-subtitle">Enter company financial data below for a complete model-based educational analysis</div>
+
+    <div class="disclaimer" style="margin-bottom:20px">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>Educational tool only. Theoretical models only. Not investment advice.</span>
+    </div>
+
+    <!-- PRESET EXAMPLES -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><h3 class="card-title">🎯 Load Educational Preset</h3></div>
+      <div class="preset-grid">
+        <div class="preset-card" onclick="loadPreset(1)">
+          <div class="preset-label">Example 1</div>
+          <div class="preset-name">High Return Company</div>
+          <div class="preset-vals">EPS: ₹10 &bull; DPS: ₹3<br>ROI: 18% &bull; Ke: 12%</div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(2)">
+          <div class="preset-label">Example 2</div>
+          <div class="preset-name">Low Return Company</div>
+          <div class="preset-vals">EPS: ₹10 &bull; DPS: ₹7<br>ROI: 8% &bull; Ke: 12%</div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(3)">
+          <div class="preset-label">Example 3</div>
+          <div class="preset-name">Equal ROI &amp; Ke</div>
+          <div class="preset-vals">EPS: ₹10 &bull; DPS: ₹5<br>ROI: 12% &bull; Ke: 12%</div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(4)">
+          <div class="preset-label">Example 4</div>
+          <div class="preset-name">Gordon Model Focus</div>
+          <div class="preset-vals">DPS: ₹5 &bull; b: 40%<br>ROI: 14% &bull; Ke: 12%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT FORM -->
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:16px">🏢 Company Details</h3>
+        <div class="form-group">
+          <label class="form-label">Company Name</label>
+          <input class="form-control" id="inp-companyName" type="text" placeholder="e.g. ABC Industries Ltd." value="ABC Industries Ltd."/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency</label>
+          <select class="form-control" id="inp-currency" onchange="changeCurrency(this.value)">
+            <option value="INR">₹ Indian Rupee (INR)</option>
+            <option value="USD">$ US Dollar (USD)</option>
+            <option value="EUR">€ Euro (EUR)</option>
+            <option value="GBP">£ British Pound (GBP)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Market Price per Share <span>(optional)</span></label>
+          <div class="input-group">
+            <span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inp-marketPrice" type="number" min="0" step="0.01" placeholder="0.00"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of Equity Shares</label>
+          <input class="form-control" id="inp-shares" type="number" min="1" step="1" placeholder="e.g. 100000" value="100000"/>
+          <div class="form-error" id="err-shares">Please enter a valid number of shares</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Net Profit <span>(leave blank if entering EPS directly)</span></label>
+          <div class="input-group">
+            <span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inp-netProfit" type="number" min="0" step="0.01" placeholder="e.g. 1000000" value="1000000" oninput="autoCalcEPS()"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Investment Requirement</label>
+          <div class="input-group">
+            <span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inp-investmentReq" type="number" min="0" step="0.01" placeholder="e.g. 500000" value="500000"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:16px">📈 Financial Parameters</h3>
+        <div class="form-group">
+          <label class="form-label">Earnings Per Share (EPS) <span id="eps-auto-badge"></span></label>
+          <div class="input-group">
+            <span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inp-eps" type="number" min="0" step="0.01" placeholder="e.g. 10.00" value="10"/>
+          </div>
+          <div class="form-helper">Auto-calculated if Net Profit &amp; Shares are provided</div>
+          <div class="form-error" id="err-eps">EPS must be a positive value</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dividend Per Share (DPS)</label>
+          <div class="input-group">
+            <span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inp-dps" type="number" min="0" step="0.01" placeholder="e.g. 4.00" value="4"/>
+          </div>
+          <div class="form-error" id="err-dps">DPS cannot be negative</div>
+          <div class="form-error" id="warn-dps" style="color:var(--warning)">⚠️ DPS exceeds EPS — payout ratio will exceed 100%. Please verify this input.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Return on Investment / ROI (%)</label>
+          <input class="form-control" id="inp-roi" type="number" min="0" max="200" step="0.01" placeholder="e.g. 15" value="15"/>
+          <div class="form-error" id="err-roi">ROI must be a positive value</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost of Equity / Ke (%)</label>
+          <input class="form-control" id="inp-ke" type="number" min="0.01" max="200" step="0.01" placeholder="e.g. 12" value="12"/>
+          <div class="form-error" id="err-ke">Cost of equity must be greater than zero</div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="runAnalysis()">🔍 Analyze Dividend Policy</button>
+          <button class="btn btn-outline" onclick="loadDemo()">🚀 Try Demo</button>
+          <button class="btn" style="background:#f1f5f9;color:var(--text2);border:none" onclick="resetCalculator()">🔄 Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS (hidden until analysis runs) -->
+    <div id="analyzerResults" style="display:none">
+
+      <!-- STAT CARDS -->
+      <div class="stat-grid" id="statGrid">
+        <div class="stat-card"><div class="stat-label">EPS</div><div class="stat-value counter currency-sym-prefix" id="r-eps">—</div></div>
+        <div class="stat-card green"><div class="stat-label">DPS</div><div class="stat-value counter currency-sym-prefix" id="r-dps">—</div></div>
+        <div class="stat-card"><div class="stat-label">Payout Ratio</div><div class="stat-value counter" id="r-payout">—</div><div class="stat-sub">% of EPS paid as dividend</div></div>
+        <div class="stat-card orange"><div class="stat-label">Retention Ratio</div><div class="stat-value counter" id="r-retention">—</div><div class="stat-sub">% of EPS retained</div></div>
+        <div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value counter" id="r-roi">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Cost of Equity</div><div class="stat-value counter" id="r-ke">—</div></div>
+        <div class="stat-card"><div class="stat-label">Growth Rate (g)</div><div class="stat-value counter" id="r-growth">—</div><div class="stat-sub">g = b × r</div></div>
+        <div class="stat-card orange"><div class="stat-label">Retained Earnings</div><div class="stat-value counter currency-sym-prefix" id="r-retained">—</div></div>
+      </div>
+
+      <!-- PROGRESS BARS -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:14px">📊 Financial Ratios Overview</div>
+        <div class="grid-2">
+          <div>
+            <div class="progress-bar-wrap">
+              <div class="progress-label"><span>Dividend Payout</span><span id="pb-payout">0%</span></div>
+              <div class="progress-track"><div class="progress-fill blue" id="pf-payout" style="width:0%"></div></div>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-label"><span>Retention Ratio</span><span id="pb-retention">0%</span></div>
+              <div class="progress-track"><div class="progress-fill green" id="pf-retention" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="progress-bar-wrap">
+              <div class="progress-label"><span>ROI</span><span id="pb-roi">0%</span></div>
+              <div class="progress-track"><div class="progress-fill orange" id="pf-roi" style="width:0%"></div></div>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-label"><span>Growth Rate (g)</span><span id="pb-growth">0%</span></div>
+              <div class="progress-track"><div class="progress-fill green" id="pf-growth" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 1 -->
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="chart-title">Profit Distribution</div>
+          <div class="chart-wrap"><canvas id="chart-profitDist"></canvas></div>
+        </div>
+        <div class="card" id="roiKeSection">
+          <div class="chart-title">ROI vs Cost of Equity</div>
+          <div class="roi-ke-indicator">
+            <div class="roi-ke-bars">
+              <div class="roi-ke-bar-wrap">
+                <div class="roi-ke-bar roi" id="roiBar" style="height:40px"></div>
+                <div class="roi-ke-label">ROI <span id="roiBarVal">0%</span></div>
+              </div>
+              <div class="roi-ke-bar-wrap">
+                <div class="roi-ke-bar ke" id="keBar" style="height:40px"></div>
+                <div class="roi-ke-label">Ke <span id="keBarVal">0%</span></div>
+              </div>
+            </div>
+            <div class="roi-ke-verdict badge" id="roiKeVerdict" style="font-size:.9rem;padding:8px 18px">—</div>
+            <p id="roiKeDesc" style="font-size:.82rem;color:var(--text2);margin-top:8px;line-height:1.5"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODEL VALUES -->
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px">📐 Walter Model Result</div>
+          <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px">P = [D + (r/Ke)(E−D)] / Ke</p>
+          <div class="formula-box" id="walterFormulaDisplay" style="font-size:.82rem;text-align:left"></div>
+          <div style="text-align:center;margin-top:12px">
+            <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px">THEORETICAL VALUE</div>
+            <div class="stat-value currency-sym-prefix" id="r-walterVal" style="font-size:2rem;color:var(--primary)">—</div>
+          </div>
+          <div id="walterInterpretation" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px">📈 Gordon Model Result</div>
+          <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px">P = D₁ / (Ke − g) where D₁ = D₀ × (1+g)</p>
+          <div class="formula-box" id="gordonFormulaDisplay" style="font-size:.82rem;text-align:left"></div>
+          <div style="text-align:center;margin-top:12px">
+            <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px">THEORETICAL VALUE</div>
+            <div class="stat-value currency-sym-prefix" id="r-gordonVal" style="font-size:2rem;color:var(--secondary)">—</div>
+          </div>
+          <div id="gordonInterpretation" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- FUNDING ANALYSIS -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:16px">💰 Investment Funding Analysis</div>
+        <div class="grid-2">
+          <div>
+            <div class="funding-flow" id="fundingFlow">
+              <div class="flow-box profit">Net Profit: <span id="ff-profit">—</span></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-split">
+                <div class="flow-box dividend">Dividend: <span id="ff-div">—</span></div>
+                <div class="flow-box retention">Retained: <span id="ff-retained">—</span></div>
+              </div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-box investment">Investment Required: <span id="ff-invest">—</span></div>
+              <div class="flow-arrow">↓</div>
+              <div class="investment-status" id="fundingStatus">—</div>
+            </div>
+          </div>
+          <div>
+            <div style="margin-bottom:12px">
+              <div class="progress-bar-wrap">
+                <div class="progress-label"><span>Investment Required</span><span id="pb-invest">—</span></div>
+                <div class="progress-track"><div class="progress-fill orange" id="pf-invest" style="width:0%"></div></div>
+              </div>
+              <div class="progress-bar-wrap">
+                <div class="progress-label"><span>Retained Earnings</span><span id="pb-retainedPb">—</span></div>
+                <div class="progress-track"><div class="progress-fill green" id="pf-retainedPb" style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="stat-card red" style="margin-bottom:10px">
+              <div class="stat-label">Funding Gap</div>
+              <div class="stat-value currency-sym-prefix counter" id="r-fundingGap">—</div>
+              <div class="stat-sub" id="fundingGapDesc">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ADVISOR -->
+      <div class="card" style="margin-bottom:20px;border:2px solid var(--primary)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--primary),#4f8ef7);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem">🤖</div>
+          <div>
+            <div style="font-size:1rem;font-weight:800;color:var(--primary)">AI-Style Financial Reasoning Engine</div>
+            <div style="font-size:.75rem;color:var(--text2)">Rule-Based Educational Advisor — Not investment advice</div>
+          </div>
+        </div>
+        <div id="advisorContent">
+          <div class="alert alert-info">Run the analysis to generate an educational interpretation based on your inputs.</div>
+        </div>
+
+        <div class="accordion" id="whyAccordion" style="margin-top:16px;display:none">
+          <div class="accordion-header" onclick="toggleAccordion('whyAccordion')">
+            <span>❓ Why am I seeing this analysis?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-body" id="whyAccordionBody"></div>
+        </div>
+      </div>
+
+      <!-- EXPORT BUTTONS -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">📤 Export Results</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 Export PDF</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📊 Export CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="exportExcel()">📋 Export Excel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: WALTER MODEL
+     ================================================================ -->
+<div class="page" id="page-walter">
+  <div class="container">
+    <div class="section-title">📐 Walter Dividend Model</div>
+    <div class="section-subtitle">James Walter (1963) — Dividend policy is relevant when r ≠ Ke</div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">📖 Walter's Theory</h3>
+        <p style="font-size:.87rem;color:var(--text2);line-height:1.7;margin-bottom:12px">
+          Walter's model states that the theoretical value of a share depends on the relationship between:
+        </p>
+        <ul style="font-size:.85rem;color:var(--text2);margin-left:16px;line-height:2">
+          <li><strong>Return on Investment (r)</strong> — the firm's earnings rate on retained profits</li>
+          <li><strong>Cost of Equity (Ke)</strong> — the shareholders' required rate of return</li>
+          <li><strong>Earnings per Share (E)</strong> — the profit attributable per share</li>
+          <li><strong>Dividend per Share (D)</strong> — the amount paid to each shareholder</li>
+        </ul>
+
+        <div class="formula-box">P = [D + (r / Ke)(E − D)] / Ke</div>
+
+        <p style="font-size:.82rem;color:var(--text2);margin-bottom:4px"><strong>Where:</strong></p>
+        <ul style="font-size:.82rem;color:var(--text2);margin-left:16px;line-height:1.8">
+          <li><strong>P</strong> = Theoretical market value per share</li>
+          <li><strong>D</strong> = Dividend per share</li>
+          <li><strong>E</strong> = Earnings per share</li>
+          <li><strong>r</strong> = Internal rate of return (ROI)</li>
+          <li><strong>Ke</strong> = Cost of equity (required return)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">🔢 Walter Calculation</h3>
+        <div class="form-group">
+          <label class="form-label">EPS (E)</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="w-eps" type="number" value="10" step="0.01" oninput="updateWalterPage()"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">DPS (D)</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="w-dps" type="number" value="4" step="0.01" oninput="updateWalterPage()"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ROI / r (%)</label>
+          <input class="form-control" id="w-roi" type="number" value="15" step="0.01" oninput="updateWalterPage()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost of Equity / Ke (%)</label>
+          <input class="form-control" id="w-ke" type="number" value="12" step="0.01" oninput="updateWalterPage()"/>
+        </div>
+        <button class="btn btn-primary" onclick="syncFromAnalyzer('walter')">↩ Use Analyzer Inputs</button>
+      </div>
+    </div>
+
+    <!-- Step-by-step -->
+    <div class="card" style="margin-bottom:20px" id="walterStepsCard">
+      <h3 class="card-title" style="margin-bottom:16px">🔢 Step-by-Step Calculation</h3>
+      <div id="walterStepsContent"></div>
+    </div>
+
+    <!-- Interpretation & Assumptions -->
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card" id="walterInterpCard">
+        <h3 class="card-title" style="margin-bottom:12px">💡 Model Interpretation</h3>
+        <div id="walterPageInterp"></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">📋 Model Assumptions</h3>
+        <div class="accordion">
+          <div class="accordion-header" onclick="toggleAccordion(this.parentElement)"><span>View Walter Model Assumptions</span><span class="accordion-icon">▼</span></div>
+          <div class="accordion-body">
+            <ul style="margin-left:16px;line-height:2;font-size:.85rem">
+              <li>The firm finances all investment through retained earnings (no external financing)</li>
+              <li>The firm's internal rate of return (r) and cost of equity (Ke) are constant</li>
+              <li>All earnings are either distributed as dividends or reinvested internally</li>
+              <li>The firm has an infinite life</li>
+              <li>Capital markets are perfect (no taxes, no flotation costs)</li>
+              <li>EPS and DPS are constant (no change over time)</li>
+            </ul>
+            <div class="alert alert-warning" style="margin-top:10px">
+              <span class="alert-icon">⚠️</span>
+              <span>These are idealized theoretical assumptions. Real-world dividend decisions involve taxes, market imperfections, and strategic considerations.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDER SIMULATOR -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:4px">🎚️ Payout Ratio Simulator</h3>
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:16px">Drag the slider to see how changing the dividend payout ratio affects the Walter theoretical value in real time.</p>
+      <div class="form-group">
+        <label class="form-label">Dividend Payout Ratio</label>
+        <div class="slider-container">
+          <input type="range" id="walterSlider" min="0" max="100" step="1" value="40" oninput="updateWalterSlider(this.value)"/>
+          <span class="slider-val" id="walterSliderVal">40%</span>
+        </div>
+      </div>
+      <div class="stat-grid" id="walterSliderStats">
+        <div class="stat-card"><div class="stat-label">DPS</div><div class="stat-value currency-sym-prefix" id="ws-dps">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Retention Ratio</div><div class="stat-value" id="ws-retention">—</div></div>
+        <div class="stat-card"><div class="stat-label">Retained Earnings</div><div class="stat-value currency-sym-prefix" id="ws-retained">—</div></div>
+        <div class="stat-card orange"><div class="stat-label">Growth Rate</div><div class="stat-value" id="ws-growth">—</div></div>
+        <div class="stat-card" style="border-left-color:var(--primary)"><div class="stat-label">Walter Value</div><div class="stat-value currency-sym-prefix" id="ws-walter">—</div></div>
+        <div class="stat-card red"><div class="stat-label">Funding Gap</div><div class="stat-value currency-sym-prefix" id="ws-gap">—</div></div>
+      </div>
+    </div>
+
+    <!-- CHART: Payout vs Walter Value -->
+    <div class="card">
+      <div class="chart-title">📉 Dividend Payout Ratio vs Walter Theoretical Value</div>
+      <p style="font-size:.78rem;color:var(--text2);text-align:center;margin-bottom:12px">The curve shows how the theoretical share value changes as payout ratio varies from 0% to 100%</p>
+      <div class="chart-wrap-lg"><canvas id="chart-walterLine"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: GORDON MODEL
+     ================================================================ -->
+<div class="page" id="page-gordon">
+  <div class="container">
+    <div class="section-title">📈 Gordon Growth Model</div>
+    <div class="section-subtitle">Myron Gordon (1962) — Share value based on expected dividends and growth</div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">📖 Gordon's Theory</h3>
+        <p style="font-size:.87rem;color:var(--text2);line-height:1.7;margin-bottom:12px">
+          Gordon's model values a share based on the present value of all future dividends, assuming a constant growth rate. The share price is determined by:
+        </p>
+        <div class="formula-box">P = D₁ / (Ke − g)</div>
+        <p style="font-size:.82rem;color:var(--text2);margin:8px 0"><strong>Where D₁ = D₀ × (1 + g)</strong></p>
+        <p style="font-size:.82rem;color:var(--text2);margin:8px 0"><strong>And g = b × r</strong></p>
+        <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px"><strong>Variables:</strong></p>
+        <ul style="font-size:.82rem;color:var(--text2);margin-left:16px;line-height:1.9">
+          <li><strong>P</strong> = Theoretical share value</li>
+          <li><strong>D₀</strong> = Current dividend per share</li>
+          <li><strong>D₁</strong> = Expected dividend next period</li>
+          <li><strong>Ke</strong> = Cost of equity / required return</li>
+          <li><strong>g</strong> = Constant growth rate = b × r</li>
+          <li><strong>b</strong> = Retention ratio (1 − payout ratio)</li>
+          <li><strong>r</strong> = Return on investment</li>
+        </ul>
+        <div class="alert alert-warning" style="margin-top:12px">
+          <span class="alert-icon">⚠️</span>
+          <span><strong>Critical Condition:</strong> The Gordon model requires g &lt; Ke. If the growth rate equals or exceeds the cost of equity, the model cannot produce a meaningful finite value.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">🔢 Gordon Calculation</h3>
+        <div class="form-group">
+          <label class="form-label">Current DPS (D₀)</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="g-dps" type="number" value="4" step="0.01" oninput="updateGordonPage()"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Retention Ratio / b (%)</label>
+          <input class="form-control" id="g-b" type="number" value="60" step="0.01" oninput="updateGordonPage()"/>
+          <div class="form-helper">b = 1 − (DPS/EPS)</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Return on Investment / r (%)</label>
+          <input class="form-control" id="g-roi" type="number" value="15" step="0.01" oninput="updateGordonPage()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost of Equity / Ke (%)</label>
+          <input class="form-control" id="g-ke" type="number" value="12" step="0.01" oninput="updateGordonPage()"/>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:10px" onclick="syncFromAnalyzer('gordon')">↩ Use Analyzer Inputs</button>
+      </div>
+    </div>
+
+    <!-- Steps + Result -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">🔢 Step-by-Step Calculation</h3>
+      <div id="gordonStepsContent"></div>
+    </div>
+
+    <!-- Simulator -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:4px">🎚️ Growth Rate Simulator</h3>
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:16px">Adjust the retention ratio to see how growth rate and Gordon value change.</p>
+      <div class="form-group">
+        <label class="form-label">Retention Ratio (b)</label>
+        <div class="slider-container">
+          <input type="range" id="gordonSlider" min="0" max="99" step="1" value="60" oninput="updateGordonSlider(this.value)"/>
+          <span class="slider-val" id="gordonSliderVal">60%</span>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Growth Rate (g)</div><div class="stat-value" id="gs-growth">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Gordon Value</div><div class="stat-value currency-sym-prefix" id="gs-gordon">—</div></div>
+        <div class="stat-card orange"><div class="stat-label">D₁</div><div class="stat-value currency-sym-prefix" id="gs-d1">—</div></div>
+        <div class="stat-card" id="gs-statusCard"><div class="stat-label">Status</div><div class="stat-value" id="gs-status">—</div></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="chart-title">Growth Rate vs Gordon Value</div>
+        <div class="chart-wrap"><canvas id="chart-gordonLine"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">Retention Ratio vs Growth Rate (g = b × r)</div>
+        <div class="chart-wrap"><canvas id="chart-retGrowth"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: MM APPROACH
+     ================================================================ -->
+<div class="page" id="page-mm">
+  <div class="container">
+    <div class="section-title">⚖️ Modigliani-Miller Dividend Irrelevance Theory</div>
+    <div class="section-subtitle">Franco Modigliani & Merton Miller (1961) — Dividend policy is irrelevant under idealized assumptions</div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:12px">📖 The MM Proposition</h3>
+      <p style="font-size:.87rem;color:var(--text2);line-height:1.8;margin-bottom:12px">
+        Modigliani and Miller argued that under certain idealized assumptions, <strong>dividend policy does not affect the total value of the firm</strong>. The value of the firm depends primarily on its <strong>earning power and investment policy</strong>, not on how profits are split between dividends and retained earnings.
+      </p>
+      <p style="font-size:.87rem;color:var(--text2);line-height:1.8;">
+        Under MM, if a firm pays higher dividends, it must raise an equivalent amount through external financing. The gain from dividends is exactly offset by the loss in value from issuing new shares. Hence, shareholders are indifferent between dividends and capital gains.
+      </p>
+    </div>
+
+    <!-- MM Formula -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:12px">📐 MM Formula</h3>
+      <div class="formula-box">P₀ = (D₁ + P₁) / (1 + Ke)</div>
+      <ul style="font-size:.84rem;color:var(--text2);margin:12px 0 12px 16px;line-height:2">
+        <li><strong>P₀</strong> = Current share value (beginning of period)</li>
+        <li><strong>D₁</strong> = Dividend at end of period</li>
+        <li><strong>P₁</strong> = Expected share value at end of period</li>
+        <li><strong>Ke</strong> = Cost of equity (required rate of return)</li>
+      </ul>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <span>Under MM, the combination of D₁ + P₁ remains constant regardless of how much dividend is paid. An increase in D₁ is exactly offset by a decrease in P₁ (because external financing dilutes the value).</span>
+      </div>
+    </div>
+
+    <!-- MM Calculator -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:12px">🔢 MM Value Calculator</h3>
+      <div class="grid-2">
+        <div>
+          <div class="form-group"><label class="form-label">Dividend at end of period (D₁)</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="mm-d1" type="number" value="4" step="0.01" oninput="updateMMPage()"/></div></div>
+          <div class="form-group"><label class="form-label">Expected end-period price (P₁)</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="mm-p1" type="number" value="115" step="0.01" oninput="updateMMPage()"/></div></div>
+          <div class="form-group"><label class="form-label">Cost of Equity / Ke (%)</label>
+            <input class="form-control" id="mm-ke" type="number" value="12" step="0.01" oninput="updateMMPage()"/></div>
+        </div>
+        <div id="mmResult">
+          <div class="step-box"><div class="step-num">Formula</div><div class="step-content">P₀ = (D₁ + P₁) / (1 + Ke)</div></div>
+          <div class="step-box" id="mm-step1"><div class="step-num">Substitution</div><div class="step-content">—</div></div>
+          <div class="step-box" id="mm-step2"><div class="step-num">Result</div><div class="step-content">—</div></div>
+          <div class="stat-card" style="margin-top:12px">
+            <div class="stat-label">MM Theoretical Value (P₀)</div>
+            <div class="stat-value currency-sym-prefix" id="mm-result">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MM ASSUMPTIONS -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">🏛️ MM Assumptions</h3>
+      <p style="font-size:.84rem;color:var(--text2);margin-bottom:16px">MM's dividend irrelevance theory depends on these idealized assumptions. In practice, most of these do not fully hold, which is why dividend policy still matters in real-world finance.</p>
+      <div class="grid-3" id="mmAssumptions"></div>
+    </div>
+
+    <!-- Funding Diagram -->
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:16px">💰 External Financing Requirement</h3>
+      <p style="font-size:.84rem;color:var(--text2);margin-bottom:16px">Under MM, if a company pays more dividends than it retains, it must raise equivalent external financing. This exactly offsets the benefit of dividends.</p>
+      <div class="formula-box">External Financing = Investment Requirement − Retained Earnings</div>
+      <div class="grid-2" style="margin-top:16px">
+        <div>
+          <div class="form-group"><label class="form-label">Net Profit</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="mm-profit" type="number" value="1000000" oninput="updateMMFunding()"/></div></div>
+          <div class="form-group"><label class="form-label">Dividend Paid</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="mm-dividend" type="number" value="400000" oninput="updateMMFunding()"/></div></div>
+          <div class="form-group"><label class="form-label">Investment Requirement</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="mm-invest" type="number" value="600000" oninput="updateMMFunding()"/></div></div>
+        </div>
+        <div id="mmFundingResult"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: COMPARE MODELS
+     ================================================================ -->
+<div class="page" id="page-compare">
+  <div class="container">
+    <div class="section-title">🔄 Walter vs Gordon vs MM — Model Comparison</div>
+    <div class="section-subtitle">Compare the three major dividend policy theories side by side</div>
+
+    <!-- Table -->
+    <div class="card" style="margin-bottom:20px;overflow-x:auto">
+      <table class="comp-table">
+        <thead><tr><th>Feature</th><th>📐 Walter Model</th><th>📈 Gordon Model</th><th>⚖️ MM Theory</th></tr></thead>
+        <tbody>
+          <tr><td>Main Idea</td><td>Dividend policy affects share value through r vs Ke relationship</td><td>Dividend policy affects value through growth and required return</td><td>Dividend policy is irrelevant under perfect market assumptions</td></tr>
+          <tr><td>Main Focus</td><td>r (ROI) vs Ke</td><td>g (growth rate) vs Ke</td><td>Investment policy is the value driver</td></tr>
+          <tr><td>Dividend Relevance</td><td><span class="badge badge-green">Relevant</span></td><td><span class="badge badge-green">Relevant</span></td><td><span class="badge badge-orange">Irrelevant (under assumptions)</span></td></tr>
+          <tr><td>Key Variable</td><td>r (Internal Rate of Return)</td><td>g (Growth Rate = b × r)</td><td>Investment policy &amp; earnings power</td></tr>
+          <tr><td>Key Formula</td><td>P = [D + (r/Ke)(E−D)] / Ke</td><td>P = D₁ / (Ke − g)</td><td>P₀ = (D₁ + P₁) / (1 + Ke)</td></tr>
+          <tr><td>External Financing</td><td>Not considered (internal only)</td><td>Not explicit</td><td>Explicitly incorporated</td></tr>
+          <tr><td>Growth Assumption</td><td>Implicit through r vs Ke</td><td>Explicit: g = b × r (constant)</td><td>No specific growth assumption</td></tr>
+          <tr><td>Practical Limitations</td><td>Assumes constant r &amp; Ke; no external financing</td><td>Assumes constant perpetual growth rate</td><td>Requires perfect capital markets</td></tr>
+          <tr><td>Conclusion when r &gt; Ke</td><td>Retain earnings (lower payout)</td><td>Growth benefits the firm</td><td>Irrelevant — value same either way</td></tr>
+          <tr><td>Conclusion when r &lt; Ke</td><td>Pay dividends (higher payout)</td><td>Lower growth reduces value</td><td>Irrelevant — value same either way</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Model Cards -->
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="model-card walter">
+        <div class="model-badge walter">Walter (1963)</div>
+        <h3 style="font-size:1rem;margin-bottom:8px">Dividend is Relevant</h3>
+        <p style="font-size:.83rem;color:var(--text2);line-height:1.6">The firm's internal rate of return determines the optimal dividend. If r &gt; Ke, retain earnings. If r &lt; Ke, distribute as dividends.</p>
+        <div class="formula-box" style="margin-top:12px;font-size:.78rem">P = [D + (r/Ke)(E−D)] / Ke</div>
+        <div style="margin-top:12px;font-size:.82rem"><strong>Walter Value: </strong><span class="currency-sym-prefix" id="cmp-walter">—</span></div>
+      </div>
+      <div class="model-card gordon">
+        <div class="model-badge gordon">Gordon (1962)</div>
+        <h3 style="font-size:1rem;margin-bottom:8px">Growth Matters</h3>
+        <p style="font-size:.83rem;color:var(--text2);line-height:1.6">Share value is the present value of all future dividends. A bird-in-hand — current dividends are valued more than uncertain future capital gains.</p>
+        <div class="formula-box" style="margin-top:12px;font-size:.78rem">P = D₁ / (Ke − g)</div>
+        <div style="margin-top:12px;font-size:.82rem"><strong>Gordon Value: </strong><span class="currency-sym-prefix" id="cmp-gordon">—</span></div>
+      </div>
+      <div class="model-card mm">
+        <div class="model-badge mm">MM (1961)</div>
+        <h3 style="font-size:1rem;margin-bottom:8px">Dividend is Irrelevant</h3>
+        <p style="font-size:.83rem;color:var(--text2);line-height:1.6">Under perfect markets, value is determined by investment decisions alone. Dividends vs capital gains are perfect substitutes for rational investors.</p>
+        <div class="formula-box" style="margin-top:12px;font-size:.78rem">P₀ = (D₁ + P₁) / (1 + Ke)</div>
+        <div style="margin-top:12px;font-size:.82rem">Value is independent of dividend policy</div>
+      </div>
+    </div>
+
+    <!-- Comparison Chart -->
+    <div class="card">
+      <div class="chart-title">📊 Theoretical Value Comparison</div>
+      <p style="font-size:.78rem;color:var(--text2);text-align:center;margin-bottom:12px">Based on current Analyzer inputs. All values are <strong>theoretical educational outputs</strong>, not actual market prices.</p>
+      <div class="chart-wrap"><canvas id="chart-compareBar"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: STRATEGY SIMULATOR
+     ================================================================ -->
+<div class="page" id="page-simulator">
+  <div class="container">
+    <div class="section-title">🎮 Dividend Strategy Simulator</div>
+    <div class="section-subtitle">Compare high-dividend, balanced, and high-retention strategies using your inputs</div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">⚙️ Base Parameters</h3>
+        <div class="form-group"><label class="form-label">EPS</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+          <input class="form-control" id="sim-eps" type="number" value="10" step="0.01" oninput="updateSimulator()"/></div></div>
+        <div class="form-group"><label class="form-label">Net Profit</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+          <input class="form-control" id="sim-profit" type="number" value="1000000" oninput="updateSimulator()"/></div></div>
+        <div class="form-group"><label class="form-label">Shares</label>
+          <input class="form-control" id="sim-shares" type="number" value="100000" oninput="updateSimulator()"/></div>
+        <div class="form-group"><label class="form-label">ROI (%)</label>
+          <input class="form-control" id="sim-roi" type="number" value="15" step="0.01" oninput="updateSimulator()"/></div>
+        <div class="form-group"><label class="form-label">Cost of Equity (%)</label>
+          <input class="form-control" id="sim-ke" type="number" value="12" step="0.01" oninput="updateSimulator()"/></div>
+        <div class="form-group"><label class="form-label">Investment Requirement</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+          <input class="form-control" id="sim-invest" type="number" value="500000" oninput="updateSimulator()"/></div></div>
+        <button class="btn btn-outline btn-sm" onclick="syncSimulatorFromAnalyzer()">↩ Use Analyzer Inputs</button>
+      </div>
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:12px">🎚️ Payout Ratio Controls</h3>
+        <div class="form-group">
+          <label class="form-label">🔴 High Dividend Payout</label>
+          <div class="slider-container">
+            <input type="range" id="sim-slider-high" min="50" max="100" step="1" value="80" oninput="updateSimulator()"/>
+            <span class="slider-val" id="sim-high-val">80%</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🟡 Balanced Payout</label>
+          <div class="slider-container">
+            <input type="range" id="sim-slider-bal" min="30" max="70" step="1" value="50" oninput="updateSimulator()"/>
+            <span class="slider-val" id="sim-bal-val">50%</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🟢 High Retention Payout</label>
+          <div class="slider-container">
+            <input type="range" id="sim-slider-low" min="0" max="40" step="1" value="20" oninput="updateSimulator()"/>
+            <span class="slider-val" id="sim-low-val">20%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy cards -->
+    <div class="grid-3" style="margin-bottom:20px" id="simStrategyCards"></div>
+
+    <!-- Charts -->
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="chart-title">Strategy Comparison — Key Metrics</div>
+        <div class="chart-wrap-lg"><canvas id="chart-simBar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">Compounding Effect of Retention (5-Year Projection)</div>
+        <div class="chart-wrap-lg"><canvas id="chart-simArea"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Year controls for compounding -->
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:12px">📅 Future Growth Projection</h3>
+      <div class="compound-controls">
+        <div class="form-group"><label class="form-label">Projection Years</label>
+          <input class="form-control" id="sim-years" type="number" value="5" min="1" max="20" oninput="updateSimulator()"/></div>
+        <div class="form-group"><label class="form-label">Base EPS</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+          <input class="form-control" id="sim-baseEps" type="number" value="10" oninput="updateSimulator()"/></div></div>
+        <div class="form-group"><label class="form-label">Initial Net Profit</label>
+          <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+          <input class="form-control" id="sim-baseProfit" type="number" value="1000000" oninput="updateSimulator()"/></div></div>
+      </div>
+      <div class="chart-wrap-lg"><canvas id="chart-simCompound"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: INVESTMENT ANALYSIS
+     ================================================================ -->
+<div class="page" id="page-investment">
+  <div class="container">
+    <div class="section-title">💰 Investment Funding Analysis</div>
+    <div class="section-subtitle">Where Should the Profit Go? Analyze the relationship between earnings, dividends, and investment needs</div>
+
+    <!-- Investment inputs -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">⚙️ Investment Parameters</h3>
+      <div class="grid-2">
+        <div>
+          <div class="form-group"><label class="form-label">Net Profit</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inv-profit" type="number" value="1000000" oninput="updateInvestmentPage()"/></div></div>
+          <div class="form-group"><label class="form-label">Dividend Paid (Total)</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inv-dividend" type="number" value="400000" oninput="updateInvestmentPage()"/></div></div>
+          <div class="form-group"><label class="form-label">Investment Requirement</label>
+            <div class="input-group"><span class="input-prefix currency-sym">₹</span>
+            <input class="form-control" id="inv-invest" type="number" value="500000" oninput="updateInvestmentPage()"/></div></div>
+          <div class="form-group"><label class="form-label">ROI (%)</label>
+            <input class="form-control" id="inv-roi" type="number" value="15" step="0.01" oninput="updateInvestmentPage()"/></div>
+          <div class="form-group"><label class="form-label">Cost of Equity (%)</label>
+            <input class="form-control" id="inv-ke" type="number" value="12" step="0.01" oninput="updateInvestmentPage()"/></div>
+          <button class="btn btn-outline btn-sm" onclick="syncInvestmentFromAnalyzer()">↩ Use Analyzer Inputs</button>
+        </div>
+        <div id="invFundingFlow"></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="chart-title">Profit Distribution</div>
+        <div class="chart-wrap"><canvas id="chart-invDist"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">Investment Funding Analysis</div>
+        <div class="chart-wrap"><canvas id="chart-invFunding"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Decision Tree -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">🌳 Walter's Decision Framework</h3>
+      <div class="decision-tree" id="decisionTree"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:16px">⏱️ Profit Allocation Timeline</h3>
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:16px">Hover over each stage to learn more.</p>
+      <div class="timeline" id="profitTimeline"></div>
+      <div class="alert alert-info" id="timelineTooltip" style="margin-top:16px;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: LEARN
+     ================================================================ -->
+<div class="page" id="page-learn">
+  <div class="container">
+    <div class="section-title">📚 Learn Dividend Policy</div>
+    <div class="section-subtitle">13 core concepts explained clearly for B.Com / M.Com / MBA Finance students</div>
+
+    <div style="margin-bottom:24px">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">🎯 Load an Educational Example</h3>
+      <div class="preset-grid">
+        <div class="preset-card" onclick="loadPreset(1);showPage('analyzer')">
+          <div class="preset-label">Example 1 — Educational</div>
+          <div class="preset-name">High Return Company</div>
+          <div class="preset-vals">EPS ₹10 · DPS ₹3 · ROI 18% · Ke 12%<br><strong>r &gt; Ke → Retention favoured</strong></div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(2);showPage('analyzer')">
+          <div class="preset-label">Example 2 — Educational</div>
+          <div class="preset-name">Low Return Company</div>
+          <div class="preset-vals">EPS ₹10 · DPS ₹7 · ROI 8% · Ke 12%<br><strong>r &lt; Ke → Dividend favoured</strong></div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(3);showPage('analyzer')">
+          <div class="preset-label">Example 3 — Educational</div>
+          <div class="preset-name">Equal ROI &amp; Ke</div>
+          <div class="preset-vals">EPS ₹10 · DPS ₹5 · ROI 12% · Ke 12%<br><strong>r = Ke → Neutral</strong></div>
+        </div>
+        <div class="preset-card" onclick="loadPreset(4);showPage('gordon')">
+          <div class="preset-label">Example 4 — Educational</div>
+          <div class="preset-name">Gordon Model Focus</div>
+          <div class="preset-vals">DPS ₹5 · b 40% · ROI 14% · Ke 12%<br><strong>g = 5.6% &lt; Ke → Valid Gordon</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="learnTopics"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: HISTORY
+     ================================================================ -->
+<div class="page" id="page-history">
+  <div class="container">
+    <div class="section-title">🕐 Calculation History</div>
+    <div class="section-subtitle">All your previous analyses are saved locally in your browser</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div id="historyCount" style="font-size:.9rem;color:var(--text2)"></div>
+      <button class="btn btn-danger btn-sm" onclick="clearAllHistory()">🗑️ Clear All History</button>
+    </div>
+
+    <div id="historyList">
+      <div class="alert alert-info"><span class="alert-icon">💡</span><span>No calculations saved yet. Run an analysis in the Dividend Analyzer to save results.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: SETTINGS
+     ================================================================ -->
+<div class="page" id="page-settings">
+  <div class="container">
+    <div class="section-title">⚙️ Settings</div>
+    <div class="section-subtitle">Customize your application preferences</div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">💱 Currency &amp; Display</h3>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div class="settings-label"><h4>Currency</h4><p>Select the currency symbol to display throughout the application</p></div>
+          <select class="form-control" style="width:200px" id="settings-currency" onchange="changeCurrency(this.value)">
+            <option value="INR">₹ Indian Rupee (INR)</option>
+            <option value="USD">$ US Dollar (USD)</option>
+            <option value="EUR">€ Euro (EUR)</option>
+            <option value="GBP">£ British Pound (GBP)</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label"><h4>Decimal Places</h4><p>Number of decimal places for displayed values</p></div>
+          <select class="form-control" style="width:120px" id="settings-decimals" onchange="saveSetting('decimals',this.value)">
+            <option value="2" selected>2 places</option>
+            <option value="3">3 places</option>
+            <option value="4">4 places</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label"><h4>Animation Speed</h4><p>Speed of number animations and chart transitions</p></div>
+          <select class="form-control" style="width:140px" id="settings-animSpeed" onchange="setAnimSpeed(this.value)">
+            <option value="fast">Fast</option>
+            <option value="normal" selected>Normal</option>
+            <option value="slow">Slow</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 class="card-title" style="margin-bottom:16px">🗑️ Data Management</h3>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div class="settings-label"><h4>Clear Calculation History</h4><p>Permanently delete all saved calculations</p></div>
+          <button class="btn btn-danger btn-sm" onclick="clearAllHistory()">Clear History</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label"><h4>Reset All Settings</h4><p>Restore all settings to their defaults</p></div>
+          <button class="btn btn-outline btn-sm" onclick="resetAllSettings()">Reset Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:12px">ℹ️ About</h3>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.7"><strong>AI Dividend Policy Advisor</strong> — Version 1.0</p>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.7;margin-top:8px">An interactive educational web application for B.Com, M.Com, and MBA Finance students. Covers Walter Model, Gordon Growth Model, and Modigliani-Miller Dividend Irrelevance Theory.</p>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.7;margin-top:8px">Uses Chart.js for visualizations, jsPDF for PDF export, SheetJS for Excel export, and localStorage for history. Runs entirely in the browser — no data is sent to any server.</p>
+      <div class="alert alert-warning" style="margin-top:12px">
+        <span class="alert-icon">⚠️</span>
+        <span><strong>Educational Tool Only.</strong> The calculations and interpretations are based on theoretical dividend-policy models and their assumptions. Model outputs are not investment advice, actual market-price predictions, or recommendations to buy or sell securities. The "AI-Style Financial Reasoning Engine" is a rule-based educational system, not a machine-learning model.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>AI Dividend Policy Advisor — Educational Tool for Finance Students &bull; Walter Model &bull; Gordon Model &bull; MM Theory &bull; Not Investment Advice</p>
+</footer>
+
+</div><!-- end app-wrapper -->
+<script>
+/* ================================================================
+   GLOBAL STATE
+   ================================================================ */
+const appState = {
+  companyName:'ABC Industries Ltd.',currency:'₹',currencyCode:'INR',
+  netProfit:1000000,shares:100000,eps:10,dps:4,roi:15,costOfEquity:12,
+  investmentRequirement:500000,marketPrice:0,
+  payoutRatio:0,retentionRatio:0,growthRate:0,
+  walterValue:0,gordonValue:0,retainedEarnings:0,fundingGap:0,
+  totalDividend:0,analyzed:false
+};
+
+const CURRENCIES={INR:{sym:'₹',name:'Indian Rupee'},USD:{sym:'$',name:'US Dollar'},EUR:{sym:'€',name:'Euro'},GBP:{sym:'£',name:'British Pound'}};
+let settings={decimals:2,animSpeed:'normal'};
+let charts={};
+let debounceTimers={};
+
+/* ================================================================
+   CALCULATION ENGINE
+   ================================================================ */
+function calcEPS(netProfit,shares){return shares>0?netProfit/shares:0}
+function calcDPS(totalDiv,shares){return shares>0?totalDiv/shares:0}
+function calcPayoutRatio(dps,eps){return eps>0?(dps/eps)*100:0}
+function calcRetentionRatio(payoutRatio){return 100-payoutRatio}
+function calcGrowthRate(retentionRatio,roi){return(retentionRatio/100)*(roi/100)*100}
+function calcWalterValue(dps,eps,roi,ke){
+  if(ke<=0)return null;
+  const r=roi/100,k=ke/100;
+  return(dps+(r/k)*(eps-dps))/k;
+}
+function calcGordonValue(dps,growthRate,ke){
+  const g=growthRate/100,k=ke/100;
+  if(g>=k)return null;
+  const d1=dps*(1+g);
+  return d1/(k-g);
+}
+function calcRetainedEarnings(netProfit,totalDiv){return netProfit-totalDiv}
+function calcFundingGap(investReq,retained){return investReq-retained}
+function calcMMValue(d1,p1,ke){return(d1+p1)/(1+ke/100)}
+
+function fmt(val,prefix,isCurrency){
+  if(val===null||val===undefined||isNaN(val)||!isFinite(val))return'—';
+  const d=settings.decimals||2;
+  const s=(isCurrency!==false&&prefix)?appState.currency:'';
+  return s+Number(val).toFixed(d);
+}
+function fmtPct(val){
+  if(val===null||val===undefined||isNaN(val)||!isFinite(val))return'—';
+  return Number(val).toFixed(settings.decimals||2)+'%';
+}
+function fmtCur(val){
+  if(val===null||val===undefined||isNaN(val)||!isFinite(val))return'—';
+  return appState.currency+Number(val).toFixed(settings.decimals||2);
+}
+
+/* ================================================================
+   NAVIGATION
+   ================================================================ */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-list a').forEach(a=>a.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg)pg.classList.add('active');
+  const lnk=document.querySelector(`.nav-list a[data-page="${id}"]`);
+  if(lnk)lnk.classList.add('active');
+  // Init page-specific UI
+  if(id==='walter')initWalterPage();
+  if(id==='gordon')initGordonPage();
+  if(id==='mm')initMMPage();
+  if(id==='compare')initComparePage();
+  if(id==='simulator')initSimulatorPage();
+  if(id==='investment')initInvestmentPage();
+  if(id==='learn')initLearnPage();
+  if(id==='history')renderHistory();
+  window.scrollTo(0,0);
+}
+function toggleMobileNav(){
+  const nav=document.getElementById('mainNav');
+  nav.style.display=nav.style.display==='none'?'':'none';
+}
+
+/* ================================================================
+   CURRENCY
+   ================================================================ */
+function changeCurrency(code){
+  appState.currencyCode=code;
+  appState.currency=CURRENCIES[code].sym;
+  // update all currency selectors
+  document.querySelectorAll('#inp-currency,#settings-currency').forEach(el=>{el.value=code});
+  document.getElementById('currencyBtn').textContent=CURRENCIES[code].sym+' '+code;
+  // update all .currency-sym spans
+  document.querySelectorAll('.currency-sym,.input-prefix.currency-sym').forEach(el=>{el.textContent=CURRENCIES[code].sym});
+  saveSetting('currency',code);
+  if(appState.analyzed)renderResults();
+}
+
+/* ================================================================
+   PRESETS & DEMO
+   ================================================================ */
+function loadPreset(n){
+  const presets={
+    1:{companyName:'High Return Co.',netProfit:1000000,shares:100000,eps:10,dps:3,roi:18,ke:12,investmentReq:500000},
+    2:{companyName:'Low Return Co.',netProfit:1000000,shares:100000,eps:10,dps:7,roi:8,ke:12,investmentReq:300000},
+    3:{companyName:'Neutral Co.',netProfit:1000000,shares:100000,eps:10,dps:5,roi:12,ke:12,investmentReq:400000},
+    4:{companyName:'Gordon Focus Co.',netProfit:1000000,shares:200000,eps:5,dps:5,roi:14,ke:12,investmentReq:300000,b:40}
+  };
+  const p=presets[n];if(!p)return;
+  document.getElementById('inp-companyName').value=p.companyName;
+  document.getElementById('inp-shares').value=p.shares;
+  document.getElementById('inp-netProfit').value=p.netProfit;
+  document.getElementById('inp-eps').value=p.eps;
+  document.getElementById('inp-dps').value=p.dps;
+  document.getElementById('inp-roi').value=p.roi;
+  document.getElementById('inp-ke').value=p.ke;
+  document.getElementById('inp-investmentReq').value=p.investmentReq||500000;
+  // Gordon preset: set b in gordon page
+  if(p.b){
+    document.getElementById('g-b').value=p.b;
+    document.getElementById('g-dps').value=p.dps;
+    document.getElementById('g-roi').value=p.roi;
+    document.getElementById('g-ke').value=p.ke;
+    updateGordonPage();
+  }
+}
+function loadDemo(){
+  loadPreset(1);
+  // Override with full demo data
+  document.getElementById('inp-companyName').value='ABC Industries Ltd.';
+  document.getElementById('inp-netProfit').value=1000000;
+  document.getElementById('inp-shares').value=100000;
+  document.getElementById('inp-eps').value=10;
+  document.getElementById('inp-dps').value=4;
+  document.getElementById('inp-roi').value=15;
+  document.getElementById('inp-ke').value=12;
+  document.getElementById('inp-investmentReq').value=500000;
+}
+
+/* ================================================================
+   AUTO CALC EPS
+   ================================================================ */
+function autoCalcEPS(){
+  const np=parseFloat(document.getElementById('inp-netProfit').value);
+  const sh=parseFloat(document.getElementById('inp-shares').value);
+  if(np>0&&sh>0){
+    const eps=calcEPS(np,sh);
+    document.getElementById('inp-eps').value=eps.toFixed(2);
+    document.getElementById('eps-auto-badge').innerHTML='<span class="auto-badge">Auto</span>';
+  } else {
+    document.getElementById('eps-auto-badge').innerHTML='';
+  }
+}
+
+/* ================================================================
+   VALIDATION
+   ================================================================ */
+function validateInputs(){
+  let valid=true;
+  const fields=['shares','eps','roi','ke'];
+  fields.forEach(f=>{
+    const el=document.getElementById('inp-'+f);
+    const err=document.getElementById('err-'+f);
+    if(!el)return;
+    const v=parseFloat(el.value);
+    if(isNaN(v)||v<0||(f==='shares'&&v<1)||(f==='ke'&&v<=0)){
+      el.classList.add('error');if(err)err.classList.add('show');valid=false;
+    } else {el.classList.remove('error');if(err)err.classList.remove('show');}
+  });
+  const eps=parseFloat(document.getElementById('inp-eps').value)||0;
+  const dps=parseFloat(document.getElementById('inp-dps').value)||0;
+  const dpsEl=document.getElementById('inp-dps');
+  const dpsErr=document.getElementById('err-dps');
+  const dpsWarn=document.getElementById('warn-dps');
+  if(dps<0){dpsEl.classList.add('error');dpsErr.classList.add('show');valid=false;}
+  else{dpsEl.classList.remove('error');dpsErr.classList.remove('show');}
+  if(dps>eps&&eps>0){dpsWarn.classList.add('show');}else{dpsWarn.classList.remove('show');}
+  return valid;
+}
+
+/* ================================================================
+   MAIN ANALYSIS
+   ================================================================ */
+function runAnalysis(){
+  if(!validateInputs())return;
+  showLoadingAnimation(()=>{
+    gatherInputs();
+    computeAll();
+    renderResults();
+    saveToHistory();
+    appState.analyzed=true;
+  });
+}
+function gatherInputs(){
+  appState.companyName=document.getElementById('inp-companyName').value||'Company';
+  appState.netProfit=parseFloat(document.getElementById('inp-netProfit').value)||0;
+  appState.shares=parseFloat(document.getElementById('inp-shares').value)||1;
+  appState.eps=parseFloat(document.getElementById('inp-eps').value)||0;
+  appState.dps=parseFloat(document.getElementById('inp-dps').value)||0;
+  appState.roi=parseFloat(document.getElementById('inp-roi').value)||0;
+  appState.costOfEquity=parseFloat(document.getElementById('inp-ke').value)||1;
+  appState.investmentRequirement=parseFloat(document.getElementById('inp-investmentReq').value)||0;
+  appState.marketPrice=parseFloat(document.getElementById('inp-marketPrice').value)||0;
+}
+function computeAll(){
+  const s=appState;
+  s.totalDividend=s.dps*s.shares;
+  s.payoutRatio=calcPayoutRatio(s.dps,s.eps);
+  s.retentionRatio=calcRetentionRatio(s.payoutRatio);
+  s.growthRate=calcGrowthRate(s.retentionRatio,s.roi);
+  s.walterValue=calcWalterValue(s.dps,s.eps,s.roi,s.costOfEquity);
+  s.gordonValue=calcGordonValue(s.dps,s.growthRate,s.costOfEquity);
+  s.retainedEarnings=calcRetainedEarnings(s.netProfit,s.totalDividend);
+  s.fundingGap=calcFundingGap(s.investmentRequirement,s.retainedEarnings);
+}
+
+/* ================================================================
+   LOADING ANIMATION
+   ================================================================ */
+function showLoadingAnimation(callback){
+  const overlay=document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  const steps=document.querySelectorAll('.loading-step');
+  steps.forEach((s,i)=>{s.classList.remove('done','active');document.querySelector(`#ls${i} .step-icon`).textContent='⏳';});
+  let idx=0;
+  const dur=appState.animSpeedMs||200;
+  function next(){
+    if(idx>0){steps[idx-1].classList.remove('active');steps[idx-1].classList.add('done');document.querySelector(`#ls${idx-1} .step-icon`).textContent='✅';}
+    if(idx<steps.length){steps[idx].classList.add('active');idx++;setTimeout(next,dur);}
+    else{setTimeout(()=>{overlay.classList.remove('show');callback();},200);}
+  }
+  next();
+}
+
+/* ================================================================
+   RENDER RESULTS
+   ================================================================ */
+function renderResults(){
+  const s=appState;
+  document.getElementById('analyzerResults').style.display='block';
+  // Stat cards
+  animateCounter('r-eps',s.eps,'currency');
+  animateCounter('r-dps',s.dps,'currency');
+  animateCounter('r-payout',s.payoutRatio,'pct');
+  animateCounter('r-retention',s.retentionRatio,'pct');
+  animateCounter('r-roi',s.roi,'pct');
+  animateCounter('r-ke',s.costOfEquity,'pct');
+  animateCounter('r-growth',s.growthRate,'pct');
+  animateCounter('r-retained',s.retainedEarnings,'currency');
+
+  // Progress bars
+  setProgress('pb-payout','pf-payout',Math.min(s.payoutRatio,100),fmtPct(s.payoutRatio));
+  setProgress('pb-retention','pf-retention',Math.min(s.retentionRatio,100),fmtPct(s.retentionRatio));
+  setProgress('pb-roi','pf-roi',Math.min(s.roi,100),fmtPct(s.roi));
+  setProgress('pb-growth','pf-growth',Math.min(s.growthRate,100),fmtPct(s.growthRate));
+
+  // Profit Distribution chart
+  renderProfitDistChart();
+  // ROI vs Ke indicator
+  renderROIKeIndicator();
+  // Walter formula
+  renderWalterFormula();
+  // Gordon formula
+  renderGordonFormula();
+  // Funding flow
+  renderFundingFlow();
+  // AI Advisor
+  renderAdvisor();
+  // Funding gap
+  renderFundingGap();
+}
+
+function setProgress(labelId,fillId,pct,text){
+  const l=document.getElementById(labelId),f=document.getElementById(fillId);
+  if(l)l.textContent=text;
+  if(f)f.style.width=Math.max(0,Math.min(100,pct))+'%';
+}
+
+/* ================================================================
+   COUNTER ANIMATION
+   ================================================================ */
+function animateCounter(id,targetVal,type){
+  const el=document.getElementById(id);if(!el)return;
+  if(targetVal===null||isNaN(targetVal)||!isFinite(targetVal)){el.textContent='—';return;}
+  const duration=600;const steps=30;const stepTime=duration/steps;
+  let current=0,step=0;
+  clearInterval(el._counter);
+  el._counter=setInterval(()=>{
+    step++;current=targetVal*(step/steps);
+    if(type==='currency')el.textContent=appState.currency+current.toFixed(settings.decimals||2);
+    else if(type==='pct')el.textContent=current.toFixed(settings.decimals||2)+'%';
+    else el.textContent=current.toFixed(settings.decimals||2);
+    if(step>=steps){clearInterval(el._counter);
+      if(type==='currency')el.textContent=appState.currency+targetVal.toFixed(settings.decimals||2);
+      else if(type==='pct')el.textContent=targetVal.toFixed(settings.decimals||2)+'%';
+      else el.textContent=targetVal.toFixed(settings.decimals||2);
+    }
+  },stepTime);
+}
+
+/* ================================================================
+   PROFIT DISTRIBUTION CHART
+   ================================================================ */
+function renderProfitDistChart(){
+  const s=appState;
+  const div=s.totalDividend;const ret=s.retainedEarnings;
+  const ctx=document.getElementById('chart-profitDist');if(!ctx)return;
+  if(charts['profitDist'])charts['profitDist'].destroy();
+  charts['profitDist']=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['Dividend Paid','Retained Earnings'],datasets:[{data:[Math.max(0,div),Math.max(0,ret)],backgroundColor:['#e02424','#0e9f6e'],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},plugins:{legend:{position:'bottom',labels:{font:{size:12}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtCur(ctx.raw)}`}}}}
+  });
+}
+
+/* ================================================================
+   ROI vs Ke INDICATOR
+   ================================================================ */
+function renderROIKeIndicator(){
+  const s=appState;
+  const maxH=80;
+  const roiH=Math.max(4,Math.min(maxH,(s.roi/30)*maxH));
+  const keH=Math.max(4,Math.min(maxH,(s.costOfEquity/30)*maxH));
+  const roiBar=document.getElementById('roiBar');
+  const keBar=document.getElementById('keBar');
+  const verdict=document.getElementById('roiKeVerdict');
+  const desc=document.getElementById('roiKeDesc');
+  const roiVal=document.getElementById('roiBarVal');
+  const keVal=document.getElementById('keBarVal');
+  if(roiBar)roiBar.style.height=roiH+'px';
+  if(keBar)keBar.style.height=keH+'px';
+  if(roiVal)roiVal.textContent=fmtPct(s.roi);
+  if(keVal)keVal.textContent=fmtPct(s.costOfEquity);
+  const diff=s.roi-s.costOfEquity;
+  if(verdict){
+    if(Math.abs(diff)<=0.5){
+      verdict.textContent='ROI ≈ Ke — Neutral';verdict.className='badge badge-gray';
+      if(desc)desc.textContent='The return on retained earnings approximately equals the cost of equity. Dividend payout has a neutral effect on theoretical share value under Walter\'s framework.';
+    } else if(diff>0){
+      verdict.textContent='ROI > Ke — Retention May Be Favoured';verdict.className='badge badge-green';
+      if(desc)desc.textContent='The return generated by retained earnings is higher than shareholders\' required return. Under Walter\'s framework, retaining a larger portion of earnings can increase theoretical share value.';
+    } else {
+      verdict.textContent='ROI < Ke — Dividend May Be Favoured';verdict.className='badge badge-red';
+      if(desc)desc.textContent='The return generated from retained earnings is lower than shareholders\' required return. Under Walter\'s framework, distributing a larger portion of earnings can result in a higher theoretical share value.';
+    }
+  }
+}
+
+/* ================================================================
+   WALTER FORMULA DISPLAY
+   ================================================================ */
+function renderWalterFormula(){
+  const s=appState;
+  const el=document.getElementById('walterFormulaDisplay');if(!el)return;
+  const wv=s.walterValue;
+  const rKe=(s.roi/100)/(s.costOfEquity/100);
+  el.innerHTML=`Step 1: P = [D + (r/Ke)(E−D)] / Ke<br>
+Step 2: P = [${s.dps} + (${(s.roi/100).toFixed(4)}/${(s.costOfEquity/100).toFixed(4)})(${s.eps}−${s.dps})] / ${(s.costOfEquity/100).toFixed(4)}<br>
+Step 3: P = [${s.dps} + ${rKe.toFixed(4)} × ${(s.eps-s.dps).toFixed(2)}] / ${(s.costOfEquity/100).toFixed(4)}<br>
+Step 4: P = [${s.dps} + ${(rKe*(s.eps-s.dps)).toFixed(4)}] / ${(s.costOfEquity/100).toFixed(4)}<br>
+Step 5: P = ${((s.dps+(rKe*(s.eps-s.dps)))).toFixed(4)} / ${(s.costOfEquity/100).toFixed(4)}<br>
+<strong>Walter Value = ${wv!==null?fmtCur(wv):'Invalid (Ke must be > 0)'}</strong>`;
+  const ri=document.getElementById('r-walterVal');
+  if(ri)ri.textContent=wv!==null?fmtCur(wv):'—';
+  // Interpretation
+  const interp=document.getElementById('walterInterpretation');
+  if(interp)interp.innerHTML=getWalterInterpHTML(s.roi,s.costOfEquity);
+}
+
+function getWalterInterpHTML(roi,ke){
+  const diff=roi-ke;
+  if(Math.abs(diff)<=0.5){
+    return`<div class="alert alert-info"><span class="alert-icon">⚖️</span><span><strong>Neutral Condition (r ≈ Ke)</strong><br>When ROI is approximately equal to the cost of equity, Walter's model indicates that changes in dividend payout have a neutral effect on theoretical share value. The firm is in a state of dividend irrelevance under this framework.</span></div>`;
+  } else if(diff>0){
+    return`<div class="alert alert-success"><span class="alert-icon">📈</span><span><strong>Retention May Be Favoured (r > Ke)</strong><br>The company earns a return (${roi}%) on retained earnings that exceeds the shareholders' required return (${ke}%). Under Walter's framework, retaining a larger portion of earnings can increase the theoretical share value.</span></div>`;
+  } else {
+    return`<div class="alert alert-danger"><span class="alert-icon">📉</span><span><strong>Dividend May Be Favoured (r < Ke)</strong><br>The return on retained earnings (${roi}%) is lower than the shareholders' required return (${ke}%). Under Walter's framework, distributing a larger portion of earnings as dividends can result in a higher theoretical share value.</span></div>`;
+  }
+}
+
+/* ================================================================
+   GORDON FORMULA DISPLAY
+   ================================================================ */
+function renderGordonFormula(){
+  const s=appState;
+  const el=document.getElementById('gordonFormulaDisplay');if(!el)return;
+  const g=s.growthRate/100,k=s.costOfEquity/100;
+  const gv=s.gordonValue;
+  const d1=s.dps*(1+g);
+  let html=`g = b × r = ${(s.retentionRatio/100).toFixed(4)} × ${(s.roi/100).toFixed(4)} = ${g.toFixed(4)} (${fmtPct(s.growthRate)})<br>
+D₁ = D₀ × (1+g) = ${s.dps} × ${(1+g).toFixed(4)} = ${d1.toFixed(4)}<br>
+P = D₁ / (Ke − g) = ${d1.toFixed(4)} / (${k.toFixed(4)} − ${g.toFixed(4)}) = ${d1.toFixed(4)} / ${(k-g).toFixed(4)}`;
+  if(g>=k){
+    html+=`<br><strong style="color:var(--danger)">⚠️ INVALID: Growth rate (${fmtPct(s.growthRate)}) ≥ Cost of Equity (${fmtPct(s.costOfEquity)}). Gordon model requires g < Ke.</strong>`;
+  } else {
+    html+=`<br><strong>Gordon Value = ${fmtCur(gv)}</strong>`;
+  }
+  el.innerHTML=html;
+  const ri=document.getElementById('r-gordonVal');
+  if(ri)ri.textContent=gv!==null?fmtCur(gv):'Invalid: g ≥ Ke';
+
+  // Gordon interpretation
+  const interp=document.getElementById('gordonInterpretation');
+  if(interp){
+    if(gv===null){
+      interp.innerHTML=`<div class="alert alert-danger"><span class="alert-icon">⚠️</span><span><strong>Gordon Model Cannot Produce a Valid Finite Value</strong><br>The Gordon Growth Model requires g &lt; Ke. Currently g = ${fmtPct(s.growthRate)}, Ke = ${fmtPct(s.costOfEquity)}. Reduce the retention ratio or ROI, or increase the cost of equity to obtain a valid result.</span></div>`;
+    } else {
+      interp.innerHTML=`<div class="alert alert-success"><span class="alert-icon">📈</span><span><strong>Gordon Value: ${fmtCur(gv)}</strong><br>With a growth rate of ${fmtPct(s.growthRate)} and a cost of equity of ${fmtPct(s.costOfEquity)}, Gordon's model gives a theoretical share value of ${fmtCur(gv)}. This is based on the present value of expected future dividends growing at a constant rate.</span></div>`;
+    }
+  }
+}
+
+/* ================================================================
+   FUNDING FLOW
+   ================================================================ */
+function renderFundingFlow(){
+  const s=appState;
+  const els=['ff-profit','ff-div','ff-retained','ff-invest'];
+  const vals=[s.netProfit,s.totalDividend,s.retainedEarnings,s.investmentRequirement];
+  els.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=fmtCur(vals[i]);});
+  renderFundingGap();
+}
+function renderFundingGap(){
+  const s=appState;
+  const gap=s.fundingGap;
+  const el=document.getElementById('r-fundingGap');
+  if(el)el.textContent=fmtCur(Math.abs(gap));
+  const desc=document.getElementById('fundingGapDesc');
+  const status=document.getElementById('fundingStatus');
+  if(gap>0){
+    if(desc)desc.textContent='External financing required';
+    if(status){status.textContent=`External Financing Required: ${fmtCur(gap)}`;status.className='investment-status gap';}
+  } else if(gap===0){
+    if(desc)desc.textContent='Investment fully funded internally';
+    if(status){status.textContent='✅ Investment Fully Funded Internally';status.className='investment-status balanced';}
+  } else {
+    if(desc)desc.textContent='Internal funds exceed investment requirement';
+    if(status){status.textContent=`✅ Surplus Funds Available: ${fmtCur(Math.abs(gap))}`;status.className='investment-status surplus';}
+  }
+  // Progress bars
+  const maxVal=Math.max(s.netProfit,s.investmentRequirement,s.retainedEarnings,1);
+  setProgress('pb-invest','pf-invest',Math.min((s.investmentRequirement/maxVal)*100,100),fmtCur(s.investmentRequirement));
+  setProgress('pb-retainedPb','pf-retainedPb',Math.min((Math.max(0,s.retainedEarnings)/maxVal)*100,100),fmtCur(s.retainedEarnings));
+}
+
+/* ================================================================
+   AI ADVISOR
+   ================================================================ */
+function renderAdvisor(){
+  const s=appState;
+  const diff=s.roi-s.costOfEquity;
+  let titleText='',titleClass='',bodyHTML='';
+  if(Math.abs(diff)<=0.5){
+    titleText='⚖️ Neutral Condition';titleClass='alert-info';
+    bodyHTML=`<p style="line-height:1.8;margin-bottom:10px">When the return on retained earnings is approximately equal to the cost of equity, <strong>Walter's model indicates that changes in dividend payout have a neutral effect on theoretical share value</strong>. In this scenario:</p>
+      <ul style="margin-left:16px;line-height:2;font-size:.87rem">
+        <li>ROI (${fmtPct(s.roi)}) ≈ Cost of Equity (${fmtPct(s.costOfEquity)})</li>
+        <li>Whether the firm pays more dividends or retains more earnings, the theoretical share value remains approximately the same</li>
+        <li>This supports Modigliani-Miller's irrelevance proposition in this specific scenario</li>
+      </ul>`;
+  } else if(diff>0){
+    titleText='📈 Higher Retention May Be Favoured';titleClass='alert-success';
+    bodyHTML=`<p style="line-height:1.8;margin-bottom:10px">The return generated by retained earnings (<strong>${fmtPct(s.roi)}</strong>) is higher than the shareholders' required return (<strong>${fmtPct(s.costOfEquity)}</strong>). Under Walter's framework:</p>
+      <ul style="margin-left:16px;line-height:2;font-size:.87rem">
+        <li>Retaining a larger portion of earnings can <strong>increase theoretical share value</strong></li>
+        <li>The company can reinvest profits at a rate (${fmtPct(s.roi)}) that exceeds what shareholders could earn elsewhere (${fmtPct(s.costOfEquity)})</li>
+        <li>Current growth rate: ${fmtPct(s.growthRate)} (g = b × r = ${fmtPct(s.retentionRatio)} × ${fmtPct(s.roi)})</li>
+        ${s.fundingGap>0?`<li>⚠️ Investment funding gap of ${fmtCur(s.fundingGap)} suggests retained earnings can help fund internal growth</li>`:
+        s.fundingGap<0?`<li>✅ Internal funds of ${fmtCur(s.retainedEarnings)} exceed the investment requirement of ${fmtCur(s.investmentRequirement)}</li>`:'<li>✅ Investment is exactly funded by retained earnings</li>'}
+        <li>Walter theoretical value at current payout: <strong>${s.walterValue!==null?fmtCur(s.walterValue):'N/A'}</strong></li>
+      </ul>`;
+  } else {
+    titleText='📉 Higher Dividend May Be Favoured';titleClass='alert-danger';
+    bodyHTML=`<p style="line-height:1.8;margin-bottom:10px">The return generated from retained earnings (<strong>${fmtPct(s.roi)}</strong>) is lower than the shareholders' required return (<strong>${fmtPct(s.costOfEquity)}</strong>). Under Walter's framework:</p>
+      <ul style="margin-left:16px;line-height:2;font-size:.87rem">
+        <li>Distributing a larger portion of earnings can <strong>result in a higher theoretical share value</strong></li>
+        <li>Shareholders can invest dividends elsewhere and earn more (${fmtPct(s.costOfEquity)}) than what the firm earns on retained profits (${fmtPct(s.roi)})</li>
+        <li>Current growth rate: ${fmtPct(s.growthRate)}</li>
+        <li>Walter theoretical value at current payout: <strong>${s.walterValue!==null?fmtCur(s.walterValue):'N/A'}</strong></li>
+      </ul>`;
+  }
+  // Gordon add-on
+  if(s.gordonValue!==null){
+    bodyHTML+=`<div class="alert alert-info" style="margin-top:12px"><span class="alert-icon">📈</span><span><strong>Gordon Model:</strong> Theoretical value = ${fmtCur(s.gordonValue)} with growth rate g = ${fmtPct(s.growthRate)} and Ke = ${fmtPct(s.costOfEquity)}. Since g (${fmtPct(s.growthRate)}) &lt; Ke (${fmtPct(s.costOfEquity)}), a valid Gordon value exists.</span></div>`;
+  } else {
+    bodyHTML+=`<div class="alert alert-warning" style="margin-top:12px"><span class="alert-icon">⚠️</span><span><strong>Gordon Model:</strong> Cannot compute a valid finite value because g (${fmtPct(s.growthRate)}) ≥ Ke (${fmtPct(s.costOfEquity)}). Consider reducing the retention ratio or ROI for a valid Gordon result.</span></div>`;
+  }
+  // MM add-on
+  bodyHTML+=`<div class="alert alert-info" style="margin-top:8px"><span class="alert-icon">⚖️</span><span><strong>MM Framework:</strong> Under Modigliani-Miller's perfect market assumptions, dividend policy is irrelevant. The firm's total value depends on its investment decisions and earning power, not on the dividend-retention split.</span></div>`;
+
+  const advisorContent=document.getElementById('advisorContent');
+  if(advisorContent){
+    advisorContent.innerHTML=`<div class="alert ${titleClass}" style="margin-bottom:12px"><span class="alert-icon" style="font-size:1.3rem">${titleText.charAt(0)}</span><div><strong style="font-size:1rem">${titleText.substring(2)}</strong><br><div style="margin-top:8px">${bodyHTML}</div></div></div>`;
+  }
+
+  // Why accordion
+  const whyAcc=document.getElementById('whyAccordion');
+  if(whyAcc)whyAcc.style.display='block';
+  const whyBody=document.getElementById('whyAccordionBody');
+  if(whyBody){
+    whyBody.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem">
+      <div><strong>ROI:</strong> ${fmtPct(s.roi)}</div>
+      <div><strong>Cost of Equity (Ke):</strong> ${fmtPct(s.costOfEquity)}</div>
+      <div><strong>ROI − Ke:</strong> ${fmtPct(s.roi-s.costOfEquity)}</div>
+      <div><strong>Payout Ratio:</strong> ${fmtPct(s.payoutRatio)}</div>
+      <div><strong>Retention Ratio:</strong> ${fmtPct(s.retentionRatio)}</div>
+      <div><strong>Growth Rate:</strong> ${fmtPct(s.growthRate)}</div>
+      <div><strong>Net Profit:</strong> ${fmtCur(s.netProfit)}</div>
+      <div><strong>Investment Req:</strong> ${fmtCur(s.investmentRequirement)}</div>
+      <div><strong>Retained Earnings:</strong> ${fmtCur(s.retainedEarnings)}</div>
+      <div><strong>Funding Gap:</strong> ${fmtCur(s.fundingGap)}</div>
+      <div><strong>Walter Value:</strong> ${s.walterValue!==null?fmtCur(s.walterValue):'—'}</div>
+      <div><strong>Gordon Value:</strong> ${s.gordonValue!==null?fmtCur(s.gordonValue):'Invalid (g≥Ke)'}</div>
+    </div>
+    <div style="margin-top:12px;font-size:.82rem;color:var(--text2)">
+      <strong>Relevant Model Assumptions:</strong>
+      <ul style="margin-left:16px;line-height:1.9;margin-top:4px">
+        <li><strong>Walter:</strong> r and Ke are constant; firm uses only internal financing; all earnings are distributed or retained</li>
+        <li><strong>Gordon:</strong> Constant perpetual growth rate g &lt; Ke; no external financing considered explicitly</li>
+        <li><strong>MM:</strong> Perfect markets; no taxes; no transaction costs; rational investors; investment policy fixed</li>
+      </ul>
+    </div>`;
+  }
+}
+
+/* ================================================================
+   RESET
+   ================================================================ */
+function resetCalculator(){
+  ['inp-companyName','inp-shares','inp-netProfit','inp-eps','inp-dps','inp-roi','inp-ke','inp-investmentReq','inp-marketPrice'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(id==='inp-companyName')el.value='';else el.value='';
+  });
+  document.getElementById('analyzerResults').style.display='none';
+  document.getElementById('advisorContent').innerHTML='<div class="alert alert-info"><span class="alert-icon">💡</span><span>Run the analysis to generate an educational interpretation based on your inputs.</span></div>';
+  document.getElementById('whyAccordion').style.display='none';
+  appState.analyzed=false;
+  ['err-shares','err-eps','err-dps','err-roi','err-ke','warn-dps'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('show');});
+}
+
+/* ================================================================
+   WALTER PAGE
+   ================================================================ */
+function initWalterPage(){
+  const s=appState;
+  if(s.analyzed){
+    document.getElementById('w-eps').value=s.eps;
+    document.getElementById('w-dps').value=s.dps;
+    document.getElementById('w-roi').value=s.roi;
+    document.getElementById('w-ke').value=s.costOfEquity;
+  }
+  updateWalterPage();
+}
+function syncFromAnalyzer(page){
+  const s=appState;
+  if(page==='walter'){
+    document.getElementById('w-eps').value=s.eps;document.getElementById('w-dps').value=s.dps;
+    document.getElementById('w-roi').value=s.roi;document.getElementById('w-ke').value=s.costOfEquity;
+    updateWalterPage();
+  } else if(page==='gordon'){
+    document.getElementById('g-dps').value=s.dps;
+    document.getElementById('g-b').value=s.retentionRatio.toFixed(2);
+    document.getElementById('g-roi').value=s.roi;document.getElementById('g-ke').value=s.costOfEquity;
+    updateGordonPage();
+  }
+}
+function updateWalterPage(){
+  const eps=parseFloat(document.getElementById('w-eps').value)||0;
+  const dps=parseFloat(document.getElementById('w-dps').value)||0;
+  const roi=parseFloat(document.getElementById('w-roi').value)||0;
+  const ke=parseFloat(document.getElementById('w-ke').value)||1;
+  const wv=calcWalterValue(dps,eps,roi,ke);
+  // Steps
+  const sc=document.getElementById('walterStepsContent');
+  if(sc){
+    const rKe=(roi/100)/(ke/100);
+    const retained=eps-dps;
+    const num=dps+(rKe*retained);
+    sc.innerHTML=`
+    <div class="step-box"><div class="step-num">Formula</div><div class="step-content">P = [D + (r / Ke) × (E − D)] / Ke</div></div>
+    <div class="step-box"><div class="step-num">Given</div><div class="step-content">E = ${appState.currency}${eps} &nbsp; D = ${appState.currency}${dps} &nbsp; r = ${roi}% &nbsp; Ke = ${ke}%</div></div>
+    <div class="step-box"><div class="step-num">Step 1: Convert %</div><div class="step-content">r = ${roi}/100 = ${(roi/100).toFixed(4)} &nbsp;&nbsp; Ke = ${ke}/100 = ${(ke/100).toFixed(4)}</div></div>
+    <div class="step-box"><div class="step-num">Step 2: r/Ke ratio</div><div class="step-content">r / Ke = ${(roi/100).toFixed(4)} / ${(ke/100).toFixed(4)} = ${rKe.toFixed(4)}</div></div>
+    <div class="step-box"><div class="step-num">Step 3: Retained earnings per share</div><div class="step-content">E − D = ${eps} − ${dps} = ${retained.toFixed(2)}</div></div>
+    <div class="step-box"><div class="step-num">Step 4: Numerator</div><div class="step-content">D + (r/Ke)(E−D) = ${dps} + ${rKe.toFixed(4)} × ${retained.toFixed(2)} = ${dps} + ${(rKe*retained).toFixed(4)} = ${num.toFixed(4)}</div></div>
+    <div class="step-box"><div class="step-num">Step 5: Final value</div><div class="step-content">P = ${num.toFixed(4)} / ${(ke/100).toFixed(4)} = <strong>${wv!==null?appState.currency+wv.toFixed(settings.decimals||2):'Invalid (Ke must be > 0)'}</strong></div></div>
+    <div class="alert ${roi>ke?'alert-success':roi<ke?'alert-danger':'alert-info'}" style="margin-top:12px">
+      <span class="alert-icon">${roi>ke?'📈':roi<ke?'📉':'⚖️'}</span>
+      <span>${roi>ke?`<strong>r > Ke (${roi}% > ${ke}%)</strong> — Under Walter's framework, retention is favoured. Retaining earnings at a return higher than Ke increases theoretical share value.`:
+        roi<ke?`<strong>r < Ke (${roi}% < ${ke}%)</strong> — Under Walter's framework, dividend payout is favoured. Distributing earnings when the firm earns less than Ke increases theoretical share value.`:
+        `<strong>r = Ke (${roi}% = ${ke}%)</strong> — Walter's model shows dividend policy is neutral. Theoretical share value does not change with payout ratio.`}</span>
+    </div>`;
+  }
+  // Interpretation
+  const interp=document.getElementById('walterPageInterp');
+  if(interp)interp.innerHTML=getWalterInterpHTML(roi,ke);
+  // Slider
+  const sliderVal=parseFloat(document.getElementById('walterSlider').value);
+  updateWalterSlider(sliderVal,eps,roi,ke);
+  // Chart
+  updateWalterChart(eps,roi,ke);
+}
+function updateWalterSlider(pct,eps,roi,ke){
+  document.getElementById('walterSliderVal').textContent=pct+'%';
+  const wEps=eps||parseFloat(document.getElementById('w-eps').value)||0;
+  const wRoi=roi||parseFloat(document.getElementById('w-roi').value)||0;
+  const wKe=ke||parseFloat(document.getElementById('w-ke').value)||1;
+  const dps_s=(pct/100)*wEps;
+  const ret=100-pct;
+  const g=calcGrowthRate(ret,wRoi);
+  const re=wEps-dps_s; // per share retained
+  const wv=calcWalterValue(dps_s,wEps,wRoi,wKe);
+  const netP=appState.netProfit||1000000;const shares=appState.shares||100000;
+  const totalDiv=dps_s*shares;const retainedAmt=netP-totalDiv;
+  const gap=calcFundingGap(appState.investmentRequirement||0,retainedAmt);
+  document.getElementById('ws-dps').textContent=fmtCur(dps_s);
+  document.getElementById('ws-retention').textContent=fmtPct(ret);
+  document.getElementById('ws-retained').textContent=fmtCur(retainedAmt);
+  document.getElementById('ws-growth').textContent=fmtPct(g);
+  document.getElementById('ws-walter').textContent=wv!==null?fmtCur(wv):'—';
+  document.getElementById('ws-gap').textContent=fmtCur(Math.abs(gap));
+}
+function updateWalterChart(eps,roi,ke){
+  const ctx=document.getElementById('chart-walterLine');if(!ctx)return;
+  const labels=[],data=[];
+  const currentPayout=parseFloat(document.getElementById('walterSlider').value);
+  for(let p=0;p<=100;p+=2){
+    const d=(p/100)*eps;
+    const v=calcWalterValue(d,eps,roi,ke);
+    labels.push(p);data.push(v!==null?parseFloat(v.toFixed(4)):null);
+  }
+  const currentIdx=currentPayout/2;
+  const pointRadii=data.map((_,i)=>i===Math.floor(currentIdx)?8:0);
+  const pointColors=data.map((_,i)=>i===Math.floor(currentIdx)?'#e02424':'#1a56db');
+  if(charts['walterLine'])charts['walterLine'].destroy();
+  charts['walterLine']=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{label:'Walter Value',data,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.1)',fill:true,tension:0.4,pointRadius:pointRadii,pointBackgroundColor:pointColors,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      scales:{x:{title:{display:true,text:'Dividend Payout Ratio (%)'}},y:{title:{display:true,text:`Theoretical Value (${appState.currency})`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Walter Value: ${fmtCur(ctx.raw)}`}}}
+    }
+  });
+}
+
+/* ================================================================
+   GORDON PAGE
+   ================================================================ */
+function initGordonPage(){
+  const s=appState;
+  if(s.analyzed){
+    document.getElementById('g-dps').value=s.dps;
+    document.getElementById('g-b').value=s.retentionRatio.toFixed(2);
+    document.getElementById('g-roi').value=s.roi;
+    document.getElementById('g-ke').value=s.costOfEquity;
+  }
+  updateGordonPage();
+  document.getElementById('gordonSlider').value=parseFloat(document.getElementById('g-b').value)||60;
+  updateGordonSlider(document.getElementById('gordonSlider').value);
+}
+function updateGordonPage(){
+  const dps=parseFloat(document.getElementById('g-dps').value)||0;
+  const b=parseFloat(document.getElementById('g-b').value)||0;
+  const roi=parseFloat(document.getElementById('g-roi').value)||0;
+  const ke=parseFloat(document.getElementById('g-ke').value)||1;
+  const g=calcGrowthRate(b,roi);
+  const gv=calcGordonValue(dps,g,ke);
+  const d1=dps*(1+g/100);
+  // Steps
+  const sc=document.getElementById('gordonStepsContent');
+  if(sc){
+    const gDecimal=g/100;const kDecimal=ke/100;
+    sc.innerHTML=`
+    <div class="step-box"><div class="step-num">Formula</div><div class="step-content">P = D₁ / (Ke − g) &nbsp; where D₁ = D₀ × (1 + g) &nbsp; and g = b × r</div></div>
+    <div class="step-box"><div class="step-num">Given</div><div class="step-content">D₀ = ${appState.currency}${dps} &nbsp; b = ${b}% &nbsp; r = ${roi}% &nbsp; Ke = ${ke}%</div></div>
+    <div class="step-box"><div class="step-num">Step 1: Growth rate</div><div class="step-content">g = b × r = (${b}/100) × (${roi}/100) = ${gDecimal.toFixed(4)} = ${g.toFixed(2)}%</div></div>
+    <div class="step-box"><div class="step-num">Step 2: Next period dividend</div><div class="step-content">D₁ = D₀ × (1 + g) = ${dps} × (1 + ${gDecimal.toFixed(4)}) = ${dps} × ${(1+gDecimal).toFixed(4)} = ${d1.toFixed(4)}</div></div>
+    <div class="step-box"><div class="step-num">Step 3: Check validity</div><div class="step-content">g = ${g.toFixed(2)}% ${gDecimal>=kDecimal?'≥':'<'} Ke = ${ke}% → ${gDecimal>=kDecimal?'⚠️ INVALID: Gordon model cannot produce a finite value':'✅ Valid: g < Ke'}</div></div>
+    ${gDecimal<kDecimal?`<div class="step-box"><div class="step-num">Step 4: Gordon Value</div><div class="step-content">P = ${d1.toFixed(4)} / (${kDecimal.toFixed(4)} − ${gDecimal.toFixed(4)}) = ${d1.toFixed(4)} / ${(kDecimal-gDecimal).toFixed(4)} = <strong>${appState.currency}${gv!==null?gv.toFixed(settings.decimals||2):'—'}</strong></div></div>`:
+    `<div class="alert alert-danger" style="margin:8px 0"><span class="alert-icon">🚫</span><span><strong>Gordon Model Cannot Produce a Valid Finite Value</strong><br>Growth rate (${g.toFixed(2)}%) ≥ Cost of Equity (${ke}%). Reduce retention ratio, reduce ROI, or increase cost of equity.</span></div>`}`;
+  }
+  updateGordonSlider(b);
+  updateGordonChart(dps,roi,ke);
+  updateRetGrowthChart(roi);
+}
+function updateGordonSlider(pct){
+  document.getElementById('gordonSliderVal').textContent=pct+'%';
+  const roi=parseFloat(document.getElementById('g-roi').value)||0;
+  const ke=parseFloat(document.getElementById('g-ke').value)||1;
+  const dps=parseFloat(document.getElementById('g-dps').value)||0;
+  const g=calcGrowthRate(pct,roi);
+  const gv=calcGordonValue(dps,g,ke);
+  const d1=dps*(1+g/100);
+  document.getElementById('gs-growth').textContent=fmtPct(g);
+  document.getElementById('gs-d1').textContent=fmtCur(d1);
+  if(gv!==null){
+    document.getElementById('gs-gordon').textContent=fmtCur(gv);
+    document.getElementById('gs-status').textContent='Valid ✅';
+    document.getElementById('gs-statusCard').className='stat-card green';
+  } else {
+    document.getElementById('gs-gordon').textContent='Invalid';
+    document.getElementById('gs-status').textContent='g ≥ Ke ⚠️';
+    document.getElementById('gs-statusCard').className='stat-card red';
+  }
+}
+function updateGordonChart(dps,roi,ke){
+  const ctx=document.getElementById('chart-gordonLine');if(!ctx)return;
+  const labels=[],data=[],bgColors=[];
+  for(let g=0;g<ke;g+=0.5){
+    const gv=calcGordonValue(dps,g,ke);
+    labels.push(g.toFixed(1));data.push(gv!==null&&gv<9999?parseFloat(gv.toFixed(2)):null);bgColors.push(g<ke-0.5?'rgba(14,159,110,.1)':'rgba(224,36,36,.1)');
+  }
+  // Add invalid region marker
+  for(let g=ke;g<=ke*2;g+=0.5){labels.push(g.toFixed(1));data.push(null);}
+  if(charts['gordonLine'])charts['gordonLine'].destroy();
+  charts['gordonLine']=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{label:'Gordon Value',data,borderColor:'#0e9f6e',backgroundColor:'rgba(14,159,110,.1)',fill:true,tension:0.4,borderWidth:2,spanGaps:false}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      scales:{x:{title:{display:true,text:'Growth Rate g (%)'}},y:{title:{display:true,text:`Theoretical Value (${appState.currency})`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Gordon Value: ${fmtCur(ctx.raw)}`}}}
+    }
+  });
+}
+function updateRetGrowthChart(roi){
+  const ctx=document.getElementById('chart-retGrowth');if(!ctx)return;
+  const labels=[],data=[];
+  for(let b=0;b<=100;b+=5){labels.push(b);data.push(parseFloat(calcGrowthRate(b,roi).toFixed(4)));}
+  if(charts['retGrowth'])charts['retGrowth'].destroy();
+  charts['retGrowth']=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{label:`Growth Rate (r=${roi}%)`,data,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:0.3,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      scales:{x:{title:{display:true,text:'Retention Ratio b (%)'}},y:{title:{display:true,text:'Growth Rate g (%)'}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`g = ${ctx.raw}%`}}}
+    }
+  });
+}
+
+/* ================================================================
+   MM PAGE
+   ================================================================ */
+const MM_ASSUMPTIONS=[
+  {icon:'🏪',title:'Perfect Capital Markets',desc:'All investors have equal access to capital markets. Securities are fairly priced and markets are efficient. No single investor can influence prices.'},
+  {icon:'💰',title:'No Taxes',desc:'There are no personal or corporate taxes. Thus shareholders are indifferent between receiving dividends or capital gains.'},
+  {icon:'🔄',title:'No Transaction Costs',desc:'Buying and selling securities involves no brokerage fees or transaction costs. Investors can create homemade dividends costlessly.'},
+  {icon:'🧠',title:'Rational Investors',desc:'All investors are rational and maximize their wealth. They make decisions based on objective analysis, not behavioral biases.'},
+  {icon:'📊',title:'Investment Policy is Fixed',desc:'The firm\'s investment decisions are independent of its dividend policy. Dividend changes do not alter the total investment in real assets.'},
+  {icon:'🚫',title:'No Flotation Costs',desc:'Issuing new shares involves no flotation costs. New shares can be issued at fair value without cost to the firm.'},
+  {icon:'📢',title:'Free Information',desc:'All relevant information about the firm is freely and equally available to all investors. No information asymmetry exists.'}
+];
+function initMMPage(){
+  renderMMAssumptions();
+  updateMMPage();
+  updateMMFunding();
+}
+function renderMMAssumptions(){
+  const container=document.getElementById('mmAssumptions');if(!container)return;
+  container.innerHTML=MM_ASSUMPTIONS.map(a=>`
+  <div class="mm-assumption">
+    <div class="icon">${a.icon}</div>
+    <h4>${a.title}</h4>
+    <p>${a.desc}</p>
+  </div>`).join('');
+}
+function updateMMPage(){
+  const d1=parseFloat(document.getElementById('mm-d1').value)||0;
+  const p1=parseFloat(document.getElementById('mm-p1').value)||0;
+  const ke=parseFloat(document.getElementById('mm-ke').value)||1;
+  const p0=calcMMValue(d1,p1,ke);
+  const s1=document.getElementById('mm-step1'),s2=document.getElementById('mm-step2'),r=document.getElementById('mm-result');
+  if(s1)s1.querySelector('.step-content').textContent=`P₀ = (${d1} + ${p1}) / (1 + ${ke/100}) = ${(d1+p1).toFixed(4)} / ${(1+ke/100).toFixed(4)}`;
+  if(s2)s2.querySelector('.step-content').textContent=`P₀ = ${appState.currency}${p0.toFixed(settings.decimals||2)}`;
+  if(r)r.textContent=fmtCur(p0);
+}
+function updateMMFunding(){
+  const profit=parseFloat(document.getElementById('mm-profit').value)||0;
+  const div=parseFloat(document.getElementById('mm-dividend').value)||0;
+  const invest=parseFloat(document.getElementById('mm-invest').value)||0;
+  const retained=profit-div;
+  const gap=invest-retained;
+  const el=document.getElementById('mmFundingResult');
+  if(!el)return;
+  el.innerHTML=`
+  <div class="step-box"><div class="step-num">Retained Earnings</div><div class="step-content">Net Profit − Dividend = ${fmtCur(profit)} − ${fmtCur(div)} = ${fmtCur(retained)}</div></div>
+  <div class="step-box"><div class="step-num">Funding Gap</div><div class="step-content">Investment − Retained = ${fmtCur(invest)} − ${fmtCur(retained)} = ${fmtCur(gap)}</div></div>
+  <div class="${gap>0?'alert alert-danger':gap<0?'alert alert-success':'alert alert-info'}" style="margin-top:8px">
+    <span class="alert-icon">${gap>0?'⚠️':gap<0?'✅':'✅'}</span>
+    <span>${gap>0?`<strong>External Financing Required: ${fmtCur(gap)}</strong><br>Under MM, issuing new shares for ${fmtCur(gap)} exactly offsets the dividend paid. Firm value remains unchanged.`:
+    gap<0?`<strong>Surplus Internal Funds: ${fmtCur(Math.abs(gap))}</strong><br>Retained earnings exceed investment requirement. Surplus can be distributed or reinvested.`:
+    `<strong>Investment Exactly Funded Internally</strong><br>No external financing needed. Retained earnings = Investment requirement.`}</span>
+  </div>`;
+}
+
+/* ================================================================
+   COMPARE PAGE
+   ================================================================ */
+function initComparePage(){
+  const s=appState;
+  document.getElementById('cmp-walter').textContent=s.walterValue!==null?fmtCur(s.walterValue):'Run Analyzer first';
+  document.getElementById('cmp-gordon').textContent=s.gordonValue!==null?fmtCur(s.gordonValue):'Invalid (g≥Ke) or run Analyzer';
+  renderCompareChart();
+}
+function renderCompareChart(){
+  const s=appState;
+  const ctx=document.getElementById('chart-compareBar');if(!ctx)return;
+  const labels=['Walter Value\n(Theoretical)','Gordon Value\n(Theoretical)','Current Market Price\n(User Input)'];
+  const values=[s.walterValue!==null?parseFloat(s.walterValue.toFixed(2)):0,s.gordonValue!==null?parseFloat(s.gordonValue.toFixed(2)):0,s.marketPrice||0];
+  const colors=['#1a56db','#0e9f6e','#d97706'];
+  if(charts['compareBar'])charts['compareBar'].destroy();
+  charts['compareBar']=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Value',data:values,backgroundColor:colors,borderRadius:6,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},
+      scales:{y:{title:{display:true,text:`Value (${appState.currency}) — Theoretical Outputs Only`},beginAtZero:true}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${labels[ctx.dataIndex].split('\n')[0]}: ${fmtCur(ctx.raw)}`}}}
+    }
+  });
+}
+
+/* ================================================================
+   STRATEGY SIMULATOR
+   ================================================================ */
+function initSimulatorPage(){
+  const s=appState;
+  if(s.analyzed){
+    document.getElementById('sim-eps').value=s.eps;
+    document.getElementById('sim-profit').value=s.netProfit;
+    document.getElementById('sim-shares').value=s.shares;
+    document.getElementById('sim-roi').value=s.roi;
+    document.getElementById('sim-ke').value=s.costOfEquity;
+    document.getElementById('sim-invest').value=s.investmentRequirement;
+    document.getElementById('sim-baseEps').value=s.eps;
+    document.getElementById('sim-baseProfit').value=s.netProfit;
+  }
+  updateSimulator();
+}
+function syncSimulatorFromAnalyzer(){
+  const s=appState;
+  document.getElementById('sim-eps').value=s.eps;
+  document.getElementById('sim-profit').value=s.netProfit;
+  document.getElementById('sim-shares').value=s.shares;
+  document.getElementById('sim-roi').value=s.roi;
+  document.getElementById('sim-ke').value=s.costOfEquity;
+  document.getElementById('sim-invest').value=s.investmentRequirement;
+  updateSimulator();
+}
+function updateSimulator(){
+  const eps=parseFloat(document.getElementById('sim-eps').value)||10;
+  const profit=parseFloat(document.getElementById('sim-profit').value)||1000000;
+  const shares=parseFloat(document.getElementById('sim-shares').value)||100000;
+  const roi=parseFloat(document.getElementById('sim-roi').value)||15;
+  const ke=parseFloat(document.getElementById('sim-ke').value)||12;
+  const invest=parseFloat(document.getElementById('sim-invest').value)||500000;
+  const highPct=parseFloat(document.getElementById('sim-slider-high').value)||80;
+  const balPct=parseFloat(document.getElementById('sim-slider-bal').value)||50;
+  const lowPct=parseFloat(document.getElementById('sim-slider-low').value)||20;
+  document.getElementById('sim-high-val').textContent=highPct+'%';
+  document.getElementById('sim-bal-val').textContent=balPct+'%';
+  document.getElementById('sim-low-val').textContent=lowPct+'%';
+
+  function calcScenario(pct,name,color,icon){
+    const dps=(pct/100)*eps;const ret=100-pct;
+    const g=calcGrowthRate(ret,roi);
+    const re=calcRetainedEarnings(profit,dps*shares);
+    const wv=calcWalterValue(dps,eps,roi,ke);
+    const gv=calcGordonValue(dps,g,ke);
+    const gap=calcFundingGap(invest,re);
+    return{name,color,icon,pct,dps,ret,g,re,wv,gv,gap,eps};
+  }
+  const scenarios=[
+    calcScenario(highPct,'High Dividend','#e02424','🔴'),
+    calcScenario(balPct,'Balanced','#d97706','🟡'),
+    calcScenario(lowPct,'High Retention','#0e9f6e','🟢')
+  ];
+
+  // Render strategy cards
+  const cards=document.getElementById('simStrategyCards');
+  if(cards){
+    cards.innerHTML=scenarios.map(sc=>`
+    <div class="strategy-card">
+      <div class="strategy-icon">${sc.icon}</div>
+      <div class="model-badge" style="background:${sc.color}22;color:${sc.color}">${sc.name}</div>
+      <div style="margin-top:10px;font-size:.85rem">
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Payout Ratio</span><strong>${fmtPct(sc.pct)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>DPS</span><strong>${fmtCur(sc.dps)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Retention Ratio</span><strong>${fmtPct(sc.ret)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Retained Earnings</span><strong>${fmtCur(sc.re)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Growth Rate</span><strong>${fmtPct(sc.g)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Walter Value</span><strong>${sc.wv!==null?fmtCur(sc.wv):'—'}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>Gordon Value</span><strong>${sc.gv!==null?fmtCur(sc.gv):'Invalid (g≥Ke)'}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0"><span>Funding Gap</span><strong style="color:${sc.gap>0?'var(--danger)':'var(--secondary)'}">${fmtCur(Math.abs(sc.gap))} ${sc.gap>0?'⚠️':'✅'}</strong></div>
+      </div>
+    </div>`).join('');
+  }
+
+  // Bar chart
+  renderSimBarChart(scenarios);
+  // Area/compounding chart
+  const years=parseInt(document.getElementById('sim-years').value)||5;
+  const baseEps=parseFloat(document.getElementById('sim-baseEps').value)||eps;
+  renderSimCompoundChart(scenarios,years,baseEps,roi);
+}
+function renderSimBarChart(scenarios){
+  const ctx=document.getElementById('chart-simBar');if(!ctx)return;
+  if(charts['simBar'])charts['simBar'].destroy();
+  const labels=scenarios.map(s=>s.name);
+  charts['simBar']=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'DPS',data:scenarios.map(s=>s.dps||0),backgroundColor:'#1a56db',borderRadius:4},
+      {label:'Growth Rate (%)',data:scenarios.map(s=>parseFloat((s.g||0).toFixed(2))),backgroundColor:'#0e9f6e',borderRadius:4},
+      {label:'Walter Value',data:scenarios.map(s=>s.wv!==null?parseFloat((s.wv||0).toFixed(2)):0),backgroundColor:'#d97706',borderRadius:4},
+      {label:'Gordon Value',data:scenarios.map(s=>s.gv!==null?parseFloat((s.gv||0).toFixed(2)):0),backgroundColor:'#7c3aed',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:700},
+      scales:{x:{},y:{beginAtZero:true}},
+      plugins:{legend:{position:'bottom'},tooltip:{mode:'index',intersect:false}}
+    }
+  });
+}
+function renderSimCompoundChart(scenarios,years,baseEps,roi){
+  const ctx=document.getElementById('chart-simArea');if(!ctx)return;
+  const labels=['Year 0'];for(let i=1;i<=years;i++)labels.push('Year '+i);
+  const colors=['#e02424','#d97706','#0e9f6e'];
+  const datasets=scenarios.map((sc,i)=>{
+    const gRate=sc.g/100;const data=[baseEps];
+    for(let y=1;y<=years;y++){data.push(parseFloat((data[y-1]*(1+gRate)).toFixed(4)));}
+    return{label:sc.name+' EPS Growth',data,borderColor:colors[i],backgroundColor:colors[i]+'22',fill:true,tension:0.4,borderWidth:2};
+  });
+  if(charts['simArea'])charts['simArea'].destroy();
+  charts['simArea']=new Chart(ctx,{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:700},
+      scales:{y:{title:{display:true,text:`Projected EPS (${appState.currency})`}}},
+      plugins:{legend:{position:'bottom'},tooltip:{mode:'index',intersect:false}}
+    }
+  });
+  // Compound chart (full area)
+  const ctx2=document.getElementById('chart-simCompound');if(!ctx2)return;
+  if(charts['simCompound'])charts['simCompound'].destroy();
+  charts['simCompound']=new Chart(ctx2,{
+    type:'line',data:{labels,datasets:datasets.map(d=>({...d,fill:true}))},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:700},
+      scales:{y:{title:{display:true,text:`Projected EPS (${appState.currency})`}}},
+      plugins:{legend:{position:'bottom'},tooltip:{mode:'index',intersect:false}}
+    }
+  });
+}
+
+/* ================================================================
+   INVESTMENT ANALYSIS PAGE
+   ================================================================ */
+function initInvestmentPage(){
+  const s=appState;
+  if(s.analyzed){
+    document.getElementById('inv-profit').value=s.netProfit;
+    document.getElementById('inv-dividend').value=s.totalDividend;
+    document.getElementById('inv-invest').value=s.investmentRequirement;
+    document.getElementById('inv-roi').value=s.roi;
+    document.getElementById('inv-ke').value=s.costOfEquity;
+  }
+  updateInvestmentPage();
+  renderTimeline();
+}
+function syncInvestmentFromAnalyzer(){
+  const s=appState;
+  document.getElementById('inv-profit').value=s.netProfit;
+  document.getElementById('inv-dividend').value=s.totalDividend;
+  document.getElementById('inv-invest').value=s.investmentRequirement;
+  document.getElementById('inv-roi').value=s.roi;
+  document.getElementById('inv-ke').value=s.costOfEquity;
+  updateInvestmentPage();
+}
+function updateInvestmentPage(){
+  const profit=parseFloat(document.getElementById('inv-profit').value)||0;
+  const div=parseFloat(document.getElementById('inv-dividend').value)||0;
+  const invest=parseFloat(document.getElementById('inv-invest').value)||0;
+  const roi=parseFloat(document.getElementById('inv-roi').value)||0;
+  const ke=parseFloat(document.getElementById('inv-ke').value)||1;
+  const retained=profit-div;
+  const gap=invest-retained;
+  // Funding flow HTML
+  const ff=document.getElementById('invFundingFlow');
+  if(ff){
+    ff.innerHTML=`<div class="funding-flow">
+      <div class="flow-box profit">Net Profit: ${fmtCur(profit)}</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-split">
+        <div class="flow-box dividend">Dividend: ${fmtCur(div)}</div>
+        <div class="flow-box retention">Retained: ${fmtCur(retained)}</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box investment">Investment Required: ${fmtCur(invest)}</div>
+      <div class="flow-arrow">↓</div>
+      <div class="${gap>0?'flow-box gap':'flow-box surplus'}">${gap>0?`⚠️ External Financing Needed: ${fmtCur(gap)}`:gap<0?`✅ Surplus Funds: ${fmtCur(Math.abs(gap))}`:'✅ Exactly Funded Internally'}</div>
+    </div>`;
+  }
+  // Charts
+  renderInvDistChart(div,retained);
+  renderInvFundingChart(invest,retained,Math.max(0,gap));
+  // Decision tree
+  renderDecisionTree(roi,ke);
+}
+function renderInvDistChart(div,retained){
+  const ctx=document.getElementById('chart-invDist');if(!ctx)return;
+  if(charts['invDist'])charts['invDist'].destroy();
+  charts['invDist']=new Chart(ctx,{type:'doughnut',
+    data:{labels:['Dividend Paid','Retained Earnings'],datasets:[{data:[Math.max(0,div),Math.max(0,retained)],backgroundColor:['#e02424','#0e9f6e'],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtCur(ctx.raw)}`}}}
+    }
+  });
+}
+function renderInvFundingChart(invest,retained,gap){
+  const ctx=document.getElementById('chart-invFunding');if(!ctx)return;
+  if(charts['invFunding'])charts['invFunding'].destroy();
+  charts['invFunding']=new Chart(ctx,{type:'bar',
+    data:{labels:['Investment Required','Retained Earnings','Funding Gap'],
+      datasets:[{data:[invest,Math.max(0,retained),gap],backgroundColor:['#d97706','#0e9f6e','#e02424'],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      scales:{y:{beginAtZero:true,title:{display:true,text:`Amount (${appState.currency})`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtCur(ctx.raw)}`}}}
+    }
+  });
+}
+function renderDecisionTree(roi,ke){
+  const dt=document.getElementById('decisionTree');if(!dt)return;
+  const diff=roi-ke;
+  const isRetention=diff>0.5,isDividend=diff<-0.5,isNeutral=Math.abs(diff)<=0.5;
+  dt.innerHTML=`
+  <div class="dt-node start">🚀 Start: Analyze Dividend Policy</div>
+  <div class="dt-arrow">↓</div>
+  <div class="dt-node question">❓ Is ROI > Cost of Equity?<br><small>ROI = ${fmtPct(roi)}, Ke = ${fmtPct(ke)}</small></div>
+  <div class="dt-arrow">↓</div>
+  <div class="dt-branches">
+    <div class="dt-branch">
+      <div class="dt-branch-label">YES (ROI > Ke)</div>
+      <div class="dt-node ${isRetention?'result-green':''}">📈 Retention May Be Favoured<br><small>Under Walter's Framework</small></div>
+    </div>
+    <div class="dt-branch">
+      <div class="dt-branch-label">NO</div>
+      <div class="dt-node question">❓ Is ROI < Ke?</div>
+      <div class="dt-branches" style="margin-top:0">
+        <div class="dt-branch">
+          <div class="dt-branch-label">YES</div>
+          <div class="dt-node ${isDividend?'result-green':''}">💰 Dividend May Be Favoured<br><small>Under Walter's Framework</small></div>
+        </div>
+        <div class="dt-branch">
+          <div class="dt-branch-label">ROI ≈ Ke</div>
+          <div class="dt-node ${isNeutral?'result-blue':'result-gray'}">⚖️ Neutral Condition<br><small>Walter: Payout irrelevant</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%">
+    <div class="alert alert-success">
+      <span class="alert-icon">📈</span>
+      <span><strong>Gordon Model:</strong> ${appState.gordonValue!==null?`Theoretical value = ${fmtCur(appState.gordonValue)} with g = ${fmtPct(appState.growthRate)} and Ke = ${fmtPct(appState.costOfEquity)}`:'Run Analyzer first or check g < Ke condition'}</span>
+    </div>
+    <div class="alert alert-info">
+      <span class="alert-icon">⚖️</span>
+      <span><strong>MM Framework:</strong> Under perfect market assumptions, dividend policy does not affect firm value. The investment policy and earning power determine value.</span>
+    </div>
+  </div>`;
+}
+function renderTimeline(){
+  const tl=document.getElementById('profitTimeline');if(!tl)return;
+  const stages=[
+    {icon:'📅',label:'Today',tip:'Current financial period — time to decide dividend policy'},
+    {icon:'💼',label:'Profit Earned',tip:'Company generates Net Profit from operations this period'},
+    {icon:'💸',label:'Dividend Paid',tip:'A portion of profit is distributed to shareholders as dividend'},
+    {icon:'🏦',label:'Retained Earnings',tip:'Remaining profit is retained within the company for reinvestment'},
+    {icon:'🔧',label:'Investment',tip:'Retained earnings fund capital investment and growth projects'},
+    {icon:'📈',label:'Growth',tip:'Investment generates future returns, growing the firm\'s earning power'},
+    {icon:'💰',label:'Future Earnings',tip:'Higher future EPS and share value for shareholders'}
+  ];
+  tl.innerHTML=stages.map((s,i)=>`
+  ${i>0?`<div class="tl-connector"></div>`:''}
+  <div class="tl-item" onmouseenter="showTimelineTip('${s.tip}')" onmouseleave="hideTimelineTip()">
+    <div class="tl-dot">${s.icon}</div>
+    <div class="tl-label">${s.label}</div>
+  </div>`).join('');
+}
+function showTimelineTip(tip){
+  const el=document.getElementById('timelineTooltip');
+  if(el){el.style.display='flex';el.innerHTML=`<span class="alert-icon">💡</span><span>${tip}</span>`;}
+}
+function hideTimelineTip(){
+  const el=document.getElementById('timelineTooltip');if(el)el.style.display='none';
+}
+
+/* ================================================================
+   LEARN PAGE
+   ================================================================ */
+const LEARN_TOPICS=[
+  {title:'What is a Dividend?',definition:'A dividend is a portion of a company\'s earnings that is distributed to its equity shareholders as a reward for their investment.',explanation:'When a company earns a profit, it has two choices: retain the profit for future investment, or distribute it to shareholders as a dividend. Dividends are typically paid in cash (cash dividends) but can also be paid in additional shares (stock dividends).',formula:'Total Dividend = Dividend Per Share × Number of Equity Shares',variables:[],example:'ABC Ltd. earns a profit of ₹10,00,000. It decides to pay ₹4,00,000 as dividend to its 1,00,000 shareholders. Each shareholder receives ₹4 per share.',realworld:'Companies like Infosys, TCS, and ITC regularly pay dividends, rewarding long-term investors with consistent income.'},
+  {title:'What is Dividend Policy?',definition:'Dividend policy refers to the set of guidelines or decisions a company uses to determine how much of its earnings to distribute as dividends versus retaining for internal use.',explanation:'It involves deciding: (1) What proportion of profit to pay as dividend? (2) How often to pay? (3) How stable should the dividend be? The policy affects shareholder value, company investment capacity, and financial structure.',example:'High-growth tech companies often retain most earnings (low dividend) to fund expansion. Mature utility companies often pay high dividends since they have fewer growth opportunities.',realworld:'Dividend policy is a key financial management decision that affects a company\'s stock price, investor expectations, and capital structure.'},
+  {title:'What is Dividend Per Share (DPS)?',definition:'Dividend Per Share (DPS) is the total dividend declared by a company divided by the total number of outstanding equity shares.',formula:'DPS = Total Dividend / Number of Equity Shares',variables:['Total Dividend = Cumulative dividend paid to all shareholders','Number of Equity Shares = Total outstanding shares'],example:'Total Dividend = ₹4,00,000. Shares = 1,00,000. DPS = ₹4,00,000 / 1,00,000 = ₹4 per share.',realworld:'DPS is a key metric for income investors comparing dividend income across different companies.'},
+  {title:'What is Earnings Per Share (EPS)?',definition:'Earnings Per Share (EPS) represents the portion of a company\'s profit allocated to each outstanding equity share.',formula:'EPS = Net Profit / Number of Equity Shares',variables:['Net Profit = Profit after tax available to equity shareholders','Number of Equity Shares = Total outstanding equity shares'],example:'Net Profit = ₹10,00,000. Shares = 1,00,000. EPS = ₹10,00,000 / 1,00,000 = ₹10 per share.',realworld:'EPS is one of the most important profitability indicators. Higher EPS generally signals better financial performance.'},
+  {title:'What is Dividend Payout Ratio?',definition:'The Dividend Payout Ratio (DPR) measures the proportion of earnings paid out as dividends to shareholders.',formula:'DPR = (DPS / EPS) × 100',variables:['DPS = Dividend Per Share','EPS = Earnings Per Share'],example:'DPS = ₹4, EPS = ₹10. DPR = (4/10) × 100 = 40%. This means 40% of earnings are distributed as dividend.',realworld:'A payout ratio of 0–30% is typical for high-growth companies; 60–80% is common for mature companies and utilities.'},
+  {title:'What is Retention Ratio?',definition:'The Retention Ratio (also called the Plowback Ratio) measures the proportion of earnings retained by the company after paying dividends.',formula:'Retention Ratio (b) = 1 − Payout Ratio  OR  b = (EPS − DPS) / EPS × 100',variables:['EPS = Earnings Per Share','DPS = Dividend Per Share'],example:'EPS = ₹10, DPS = ₹4. b = (10−4)/10 × 100 = 60%. 60% of earnings are retained for reinvestment.',realworld:'A high retention ratio indicates the company is reinvesting profits for future growth. This is typical of growth-oriented firms.'},
+  {title:'What are Retained Earnings?',definition:'Retained Earnings are the cumulative portion of a company\'s net profit that has been kept within the company rather than distributed as dividends.',formula:'Retained Earnings = Net Profit − Total Dividend Paid',variables:['Net Profit = Total profit after tax','Total Dividend = DPS × Number of Shares'],example:'Net Profit = ₹10,00,000. Total Dividend = ₹4,00,000. Retained Earnings = ₹6,00,000.',realworld:'Retained earnings appear on the balance sheet under shareholders\' equity. They represent the internal funding source for future investment.'},
+  {title:'What is Return on Investment (ROI)?',definition:'In the context of dividend policy models, ROI (also called r or the Internal Rate of Return) represents the rate of return the company earns on its investment of retained earnings.',formula:'ROI (r) = Return Generated / Capital Invested × 100',variables:['Return Generated = Profit earned from reinvested retained earnings','Capital Invested = Total capital employed'],example:'If the company reinvests ₹6,00,000 at an ROI of 15%, it generates ₹90,000 in additional earnings.',realworld:'ROI is the key driver in Walter\'s model. When r > Ke, retaining earnings creates more value than distributing them.'},
+  {title:'What is Cost of Equity (Ke)?',definition:'The Cost of Equity (Ke) is the rate of return that shareholders require on their equity investment in the company. It represents the opportunity cost of equity capital.',formula:'Ke is often estimated using CAPM: Ke = Rf + β(Rm − Rf)',variables:['Rf = Risk-free rate','β = Beta (market sensitivity)','Rm = Market return','Rm − Rf = Market risk premium'],example:'If shareholders require a 12% return on their investment, Ke = 12%.',realworld:'Ke is the hurdle rate for equity. If ROI < Ke, the firm destroys value by retaining earnings instead of distributing them.'},
+  {title:'What is Growth Rate (g)?',definition:'The Growth Rate (g) represents the sustainable rate at which the firm\'s earnings and dividends can grow, based on the reinvestment of retained earnings.',formula:'g = b × r',variables:['b = Retention Ratio (as decimal, e.g. 0.60 for 60%)','r = Return on Investment / ROI (as decimal)'],example:'b = 60% = 0.60, r = 15% = 0.15. g = 0.60 × 0.15 = 0.09 = 9%.',realworld:'A higher growth rate increases Gordon\'s theoretical share value, provided g remains below Ke.'},
+  {title:'What is the Walter Model?',definition:'Walter\'s Dividend Model (1963) states that the dividend policy of a firm is relevant and affects the theoretical market value of shares based on the relationship between r (ROI) and Ke (Cost of Equity).',formula:'P = [D + (r / Ke)(E − D)] / Ke',variables:['P = Theoretical market value','D = Dividend Per Share','E = Earnings Per Share','r = Internal Rate of Return (ROI)','Ke = Cost of Equity'],example:'EPS=10, DPS=4, r=15%, Ke=12%. P = [4+(0.15/0.12)(10−4)]/0.12 = [4+7.5]/0.12 = 11.5/0.12 = ₹95.83',realworld:'Walter\'s model is widely used in academic analysis. Key insight: If r > Ke, retain earnings; if r < Ke, pay dividends.'},
+  {title:'What is the Gordon Growth Model?',definition:'Gordon\'s Growth Model (1962) values a share as the present value of all expected future dividends, assuming they grow at a constant rate g indefinitely.',formula:'P = D₁ / (Ke − g) where D₁ = D₀ × (1 + g) and g = b × r',variables:['P = Theoretical share value','D₁ = Expected dividend next period','D₀ = Current dividend','Ke = Cost of equity','g = Constant growth rate = b × r'],example:'D₀=4, g=9%, Ke=12%. D₁=4×1.09=4.36. P=4.36/(0.12−0.09)=4.36/0.03=₹145.33',realworld:'The Gordon model is widely used for valuing dividend-paying stocks. Critical: g must be strictly less than Ke.'},
+  {title:'What is MM Theory?',definition:'Modigliani-Miller Dividend Irrelevance Theory (1961) argues that in a perfect capital market, the dividend policy of a firm does not affect its total value or the wealth of shareholders.',formula:'P₀ = (D₁ + P₁) / (1 + Ke)',variables:['P₀ = Current share value','D₁ = Dividend at period end','P₁ = Share price at period end','Ke = Cost of equity'],example:'If a firm pays more dividend (D₁ increases), its end-period price P₁ falls by an equal amount (due to external financing dilution). P₀ stays the same.',realworld:'MM theory holds under perfect conditions. In reality, taxes, transaction costs, and information asymmetry make dividend policy relevant in practice.'}
+];
+function initLearnPage(){
+  const container=document.getElementById('learnTopics');if(!container)return;
+  container.innerHTML=LEARN_TOPICS.map((t,i)=>`
+  <div class="learn-topic">
+    <div class="learn-header" onclick="toggleLearnTopic(${i})">
+      <div class="learn-num">${i+1}</div>
+      <span>${t.title}</span>
+      <span style="margin-left:auto;color:var(--text3);font-size:.9rem">▼</span>
+    </div>
+    <div class="learn-body" id="learn-body-${i}">
+      <h4>Definition</h4>
+      <p>${t.definition}</p>
+      ${t.explanation?`<h4>Explanation</h4><p>${t.explanation}</p>`:''}
+      ${t.formula?`<h4>Formula</h4><div class="formula-box" style="font-size:.85rem;text-align:left">${t.formula}</div>`:''}
+      ${t.variables&&t.variables.length?`<h4>Variable Meanings</h4><ul>${t.variables.map(v=>`<li>${v}</li>`).join('')}</ul>`:''}
+      ${t.example?`<h4>Example</h4><div class="learn-example"><strong>Example: </strong>${t.example}</div>`:''}
+      ${t.realworld?`<h4>Real-World Context</h4><p>${t.realworld}</p>`:''}
+    </div>
+  </div>`).join('');
+}
+function toggleLearnTopic(i){
+  const body=document.getElementById('learn-body-'+i);
+  if(!body)return;
+  body.classList.toggle('open');
+  const header=body.previousElementSibling;
+  if(header){const icon=header.querySelector('span:last-child');if(icon)icon.textContent=body.classList.contains('open')?'▲':'▼';}
+}
+
+/* ================================================================
+   HISTORY
+   ================================================================ */
+function saveToHistory(){
+  const s=appState;
+  const record={
+    id:Date.now(),
+    date:new Date().toLocaleDateString('en-IN'),
+    time:new Date().toLocaleTimeString('en-IN'),
+    company:s.companyName,currency:s.currency,
+    eps:s.eps,dps:s.dps,roi:s.roi,ke:s.costOfEquity,
+    payoutRatio:s.payoutRatio,retentionRatio:s.retentionRatio,
+    growthRate:s.growthRate,investmentReq:s.investmentRequirement,
+    walterValue:s.walterValue,gordonValue:s.gordonValue,
+    retainedEarnings:s.retainedEarnings,fundingGap:s.fundingGap,
+    netProfit:s.netProfit,shares:s.shares
+  };
+  const history=JSON.parse(localStorage.getItem('dividendHistory')||'[]');
+  history.unshift(record);
+  if(history.length>100)history.splice(100);
+  localStorage.setItem('dividendHistory',JSON.stringify(history));
+}
+function renderHistory(){
+  const history=JSON.parse(localStorage.getItem('dividendHistory')||'[]');
+  const container=document.getElementById('historyList');
+  const countEl=document.getElementById('historyCount');
+  if(countEl)countEl.textContent=`${history.length} calculation${history.length!==1?'s':''} saved`;
+  if(!history.length){
+    container.innerHTML='<div class="alert alert-info"><span class="alert-icon">💡</span><span>No calculations saved yet. Run an analysis in the Dividend Analyzer to save results.</span></div>';
+    return;
+  }
+  container.innerHTML=history.map((r,i)=>`
+  <div class="history-item" id="hist-${r.id}">
+    <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;flex-shrink:0">${i+1}</div>
+    <div class="history-meta">
+      <div class="history-company">${r.company}</div>
+      <div class="history-date">${r.date} at ${r.time}</div>
+      <div class="history-vals">
+        <span class="history-val">EPS: <strong>${r.currency}${(r.eps||0).toFixed(2)}</strong></span>
+        <span class="history-val">DPS: <strong>${r.currency}${(r.dps||0).toFixed(2)}</strong></span>
+        <span class="history-val">ROI: <strong>${(r.roi||0).toFixed(2)}%</strong></span>
+        <span class="history-val">Ke: <strong>${(r.ke||0).toFixed(2)}%</strong></span>
+        <span class="history-val">Walter: <strong>${r.walterValue!==null&&r.walterValue!==undefined?r.currency+(r.walterValue||0).toFixed(2):'—'}</strong></span>
+        <span class="history-val">Gordon: <strong>${r.gordonValue!==null&&r.gordonValue!==undefined?r.currency+(r.gordonValue||0).toFixed(2):'Invalid'}</strong></span>
+      </div>
+    </div>
+    <div class="history-actions">
+      <button class="btn btn-outline btn-sm" onclick="restoreHistory(${r.id})">↩ Restore</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteHistory(${r.id})">🗑️</button>
+    </div>
+  </div>`).join('');
+}
+function restoreHistory(id){
+  const history=JSON.parse(localStorage.getItem('dividendHistory')||'[]');
+  const record=history.find(r=>r.id===id);if(!record)return;
+  document.getElementById('inp-companyName').value=record.company;
+  document.getElementById('inp-eps').value=record.eps;
+  document.getElementById('inp-dps').value=record.dps;
+  document.getElementById('inp-roi').value=record.roi;
+  document.getElementById('inp-ke').value=record.ke;
+  document.getElementById('inp-investmentReq').value=record.investmentReq;
+  document.getElementById('inp-netProfit').value=record.netProfit;
+  document.getElementById('inp-shares').value=record.shares;
+  showPage('analyzer');
+  setTimeout(()=>{runAnalysis();},100);
+}
+function deleteHistory(id){
+  let history=JSON.parse(localStorage.getItem('dividendHistory')||'[]');
+  history=history.filter(r=>r.id!==id);
+  localStorage.setItem('dividendHistory',JSON.stringify(history));
+  const el=document.getElementById('hist-'+id);
+  if(el){el.style.opacity='0';el.style.transform='translateX(20px)';setTimeout(()=>{el.remove();renderHistory();},300);}
+  else renderHistory();
+}
+function clearAllHistory(){
+  if(!confirm('Are you sure you want to delete ALL calculation history? This cannot be undone.'))return;
+  localStorage.removeItem('dividendHistory');
+  renderHistory();
+}
+
+/* ================================================================
+   EXPORT
+   ================================================================ */
+function exportPDF(){
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF();
+    const s=appState;
+    const cu=s.currency;
+    const d=settings.decimals||2;
+    let y=15;
+    // Header
+    doc.setFontSize(18);doc.setTextColor(26,86,219);
+    doc.text('AI Dividend Policy Advisor',105,y,{align:'center'});
+    y+=8;doc.setFontSize(10);doc.setTextColor(100);
+    doc.text('Educational Report — Theoretical Model Analysis',105,y,{align:'center'});
+    y+=6;doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`,105,y,{align:'center'});
+    y+=10;
+    // Disclaimer
+    doc.setFontSize(8);doc.setTextColor(150,100,0);
+    doc.text('DISCLAIMER: Educational tool only. Not investment advice. Theoretical model outputs only.',10,y);
+    y+=8;
+    // Company info
+    doc.setFontSize(13);doc.setTextColor(26,86,219);doc.text('Company Information',10,y);y+=7;
+    doc.setFontSize(10);doc.setTextColor(50);
+    doc.text(`Company: ${s.companyName}`,10,y);y+=5;
+    doc.text(`Currency: ${s.currencyCode} (${cu})`,10,y);y+=5;
+    doc.text(`Number of Shares: ${s.shares}`,10,y);y+=10;
+    // Financial inputs
+    doc.setFontSize(13);doc.setTextColor(26,86,219);doc.text('Financial Inputs & Calculated Ratios',10,y);y+=7;
+    doc.setFontSize(10);doc.setTextColor(50);
+    const rows=[
+      ['EPS',`${cu}${s.eps.toFixed(d)}`,'DPS',`${cu}${s.dps.toFixed(d)}`],
+      ['ROI',`${s.roi.toFixed(d)}%`,'Cost of Equity',`${s.costOfEquity.toFixed(d)}%`],
+      ['Payout Ratio',`${s.payoutRatio.toFixed(d)}%`,'Retention Ratio',`${s.retentionRatio.toFixed(d)}%`],
+      ['Growth Rate',`${s.growthRate.toFixed(d)}%`,'Net Profit',`${cu}${s.netProfit.toFixed(d)}`],
+      ['Retained Earnings',`${cu}${s.retainedEarnings.toFixed(d)}`,'Investment Req',`${cu}${s.investmentRequirement.toFixed(d)}`],
+      ['Funding Gap',`${cu}${s.fundingGap.toFixed(d)}`,'Total Dividend',`${cu}${s.totalDividend.toFixed(d)}`]
+    ];
+    rows.forEach(row=>{
+      doc.text(`${row[0]}: ${row[1]}`,10,y);doc.text(`${row[2]}: ${row[3]}`,110,y);y+=5;
+    });
+    y+=5;
+    // Walter
+    doc.setFontSize(13);doc.setTextColor(26,86,219);doc.text('Walter Model',10,y);y+=7;
+    doc.setFontSize(10);doc.setTextColor(50);
+    doc.text('Formula: P = [D + (r/Ke)(E-D)] / Ke',10,y);y+=5;
+    doc.text(`Walter Theoretical Value: ${s.walterValue!==null?cu+s.walterValue.toFixed(d):'Invalid (Ke must be > 0)'}`,10,y);y+=5;
+    const wdiff=s.roi-s.costOfEquity;
+    doc.text(`Interpretation: ${Math.abs(wdiff)<=0.5?'Neutral (r ≈ Ke)':wdiff>0?'Retention favoured (r > Ke)':'Dividend favoured (r < Ke)'}`,10,y);y+=10;
+    // Gordon
+    doc.setFontSize(13);doc.setTextColor(26,86,219);doc.text('Gordon Growth Model',10,y);y+=7;
+    doc.setFontSize(10);doc.setTextColor(50);
+    doc.text('Formula: P = D1 / (Ke - g) where D1 = D0*(1+g) and g = b*r',10,y);y+=5;
+    doc.text(`Growth Rate (g): ${s.growthRate.toFixed(d)}%`,10,y);y+=5;
+    doc.text(`Gordon Theoretical Value: ${s.gordonValue!==null?cu+s.gordonValue.toFixed(d):'Invalid — g >= Ke'}`,10,y);y+=10;
+    // MM
+    doc.setFontSize(13);doc.setTextColor(26,86,219);doc.text('MM Dividend Irrelevance Theory',10,y);y+=7;
+    doc.setFontSize(10);doc.setTextColor(50);
+    doc.text('Under MM assumptions, dividend policy does not affect firm value.',10,y);y+=5;
+    doc.text('Value is determined by investment policy and earning power alone.',10,y);y+=10;
+    // Disclaimer footer
+    doc.setFontSize(8);doc.setTextColor(150);
+    doc.text('This report is for educational purposes only. The theoretical values produced by Walter\'s and Gordon\'s models',10,y);y+=4;
+    doc.text('are not actual market prices and should not be used as investment recommendations.',10,y);
+    doc.save(`Dividend_Policy_Report_${s.companyName.replace(/\s/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  }catch(e){alert('PDF export requires jsPDF. Please ensure you have internet access to load the CDN library.');}
+}
+function exportCSV(){
+  const s=appState;const d=settings.decimals||2;
+  const rows=[
+    ['Field','Value'],
+    ['Company',s.companyName],['Currency',s.currencyCode],['Date',new Date().toLocaleDateString('en-IN')],
+    ['Shares',s.shares],['Net Profit',s.netProfit.toFixed(d)],
+    ['EPS',s.eps.toFixed(d)],['DPS',s.dps.toFixed(d)],
+    ['ROI (%)',s.roi.toFixed(d)],['Cost of Equity (%)',s.costOfEquity.toFixed(d)],
+    ['Payout Ratio (%)',s.payoutRatio.toFixed(d)],['Retention Ratio (%)',s.retentionRatio.toFixed(d)],
+    ['Growth Rate (%)',s.growthRate.toFixed(d)],
+    ['Retained Earnings',s.retainedEarnings.toFixed(d)],['Total Dividend',s.totalDividend.toFixed(d)],
+    ['Investment Requirement',s.investmentRequirement.toFixed(d)],['Funding Gap',s.fundingGap.toFixed(d)],
+    ['Walter Value',s.walterValue!==null?s.walterValue.toFixed(d):'Invalid'],
+    ['Gordon Value',s.gordonValue!==null?s.gordonValue.toFixed(d):'Invalid (g>=Ke)'],
+    ['',''],['DISCLAIMER','Educational use only. Not investment advice.']
+  ];
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`Dividend_Policy_${s.companyName.replace(/\s/g,'_')}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+function exportExcel(){
+  if(typeof XLSX==='undefined'){exportCSV();return;}
+  const s=appState;const d=settings.decimals||2;
+  const data=[
+    ['AI Dividend Policy Advisor — Educational Report'],
+    ['Company',s.companyName,'Date',new Date().toLocaleDateString('en-IN')],
+    ['Currency',s.currencyCode,'Disclaimer','Educational use only. Not investment advice.'],
+    [],
+    ['Financial Parameters','Value','Calculated Ratios','Value'],
+    ['EPS',parseFloat(s.eps.toFixed(d)),'Payout Ratio (%)',parseFloat(s.payoutRatio.toFixed(d))],
+    ['DPS',parseFloat(s.dps.toFixed(d)),'Retention Ratio (%)',parseFloat(s.retentionRatio.toFixed(d))],
+    ['ROI (%)',parseFloat(s.roi.toFixed(d)),'Growth Rate (%)',parseFloat(s.growthRate.toFixed(d))],
+    ['Cost of Equity (%)',parseFloat(s.costOfEquity.toFixed(d)),'Retained Earnings',parseFloat(s.retainedEarnings.toFixed(d))],
+    ['Net Profit',parseFloat(s.netProfit.toFixed(d)),'Total Dividend',parseFloat(s.totalDividend.toFixed(d))],
+    ['Investment Req',parseFloat(s.investmentRequirement.toFixed(d)),'Funding Gap',parseFloat(s.fundingGap.toFixed(d))],
+    [],
+    ['Model Results','Theoretical Value'],
+    ['Walter Model',s.walterValue!==null?parseFloat(s.walterValue.toFixed(d)):'Invalid'],
+    ['Gordon Model',s.gordonValue!==null?parseFloat(s.gordonValue.toFixed(d)):'Invalid (g>=Ke)'],
+    ['MM Theory','Dividend policy irrelevant under perfect market assumptions'],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Dividend Analysis');
+  XLSX.writeFile(wb,`Dividend_Policy_${s.companyName.replace(/\s/g,'_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+/* ================================================================
+   SETTINGS
+   ================================================================ */
+function saveSetting(key,val){
+  settings[key]=val;localStorage.setItem('dividendSettings',JSON.stringify(settings));
+  if(key==='currency'){}
+}
+function setAnimSpeed(speed){
+  settings.animSpeed=speed;
+  appState.animSpeedMs=speed==='fast'?100:speed==='slow'?400:200;
+  saveSetting('animSpeed',speed);
+}
+function resetAllSettings(){
+  settings={decimals:2,animSpeed:'normal'};
+  localStorage.removeItem('dividendSettings');
+  document.getElementById('settings-decimals').value='2';
+  document.getElementById('settings-animSpeed').value='normal';
+  changeCurrency('INR');
+}
+function loadSettings(){
+  const saved=localStorage.getItem('dividendSettings');
+  if(saved){
+    try{const s=JSON.parse(saved);settings=Object.assign(settings,s);
+      if(s.currency)changeCurrency(s.currency);
+      if(s.decimals){const el=document.getElementById('settings-decimals');if(el)el.value=s.decimals;}
+      if(s.animSpeed){const el=document.getElementById('settings-animSpeed');if(el)el.value=s.animSpeed;setAnimSpeed(s.animSpeed);}
+    }catch(e){}
+  }
+}
+
+/* ================================================================
+   ACCORDION
+   ================================================================ */
+function toggleAccordion(el){
+  if(typeof el==='string')el=document.getElementById(el);
+  el.classList.toggle('open');
+}
+
+/* ================================================================
+   SCROLL ANIMATION
+   ================================================================ */
+function initScrollAnimations(){
+  const observer=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+  },{threshold:0.1});
+  document.querySelectorAll('.fade-in').forEach(el=>observer.observe(el));
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded',()=>{
+  loadSettings();
+  initLearnPage();
+  // Init currency symbols
+  document.querySelectorAll('.currency-sym,.input-prefix.currency-sym').forEach(el=>{el.textContent=appState.currency;});
+  // Auto-calc when shares/profit change
+  document.getElementById('inp-shares').addEventListener('input',autoCalcEPS);
+  initScrollAnimations();
+  // Init walter/gordon with defaults so charts render immediately when navigated
+});
+</script>
+</body>
+</html>
